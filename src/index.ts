@@ -13,7 +13,7 @@ const cp = useStub
 
 const bot = config.discordBotToken ? createDiscordBotRest(config.discordBotToken) : undefined;
 
-const publicServer = createHttpServer({ config, cp, surface: "public" });
+const publicServer = createHttpServer({ config, cp, surface: "public", bot });
 const internalServer = createHttpServer({ config, cp, surface: "internal", bot });
 
 publicServer.listen(config.port, config.publicHost, () => {

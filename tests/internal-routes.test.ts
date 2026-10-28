@@ -69,6 +69,7 @@ describe("internal guild routes", () => {
   function startServers(): void {
     bot = {
       leaveGuild: vi.fn().mockResolvedValue({ ok: true }),
+      getGuild: vi.fn().mockResolvedValue({ ok: true, name: "Test Guild" }),
       listGuildRoles: vi.fn().mockResolvedValue({
         ok: true,
         roles: [

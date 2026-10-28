@@ -8,6 +8,7 @@ import { handleInternalRoute } from "./internal-routes.js";
 import { createInteractionHandler } from "../interactions/handler.js";
 import { InteractionIdempotency } from "../interactions/idempotency.js";
 import type { InteractionPayload } from "../interactions/types.js";
+import { handleOAuthCallback, handleOAuthStart } from "./oauth-routes.js";
 import { FixedWindowBucket, GuildRateLimiter, ProcessRpsLimiter } from "../rate-limit/buckets.js";
 
 export type HttpServerSurface = "public" | "internal";
@@ -24,6 +25,7 @@ export type HttpServerDeps = {
 export function createHttpServer(deps: HttpServerDeps): http.Server {
   const surface = deps.surface ?? "public";
   const unsignedIpBucket = new FixedWindowBucket(deps.config.unsignedIpLimitPerMin, 60_000);
+  const oauthIpBucket = new FixedWindowBucket(deps.config.oauthIpLimitPerMin, 60_000);
   const guildLimiter = new GuildRateLimiter(deps.config.guildLimitPerMin, deps.config.guildBurst);
   const processLimiter = new ProcessRpsLimiter(deps.config.processRps);
   const idempotency = new InteractionIdempotency(24 * 60 * 60 * 1000);
@@ -75,6 +77,30 @@ export function createHttpServer(deps: HttpServerDeps): http.Server {
 
     if (req.method === "POST" && url === "/interactions") {
       await handleInteractionsPost(req, res, deps.config, unsignedIpBucket, handleInteraction);
+      return;
+    }
+
+    if (surface === "public" && deps.bot && req.method === "GET" && url === "/oauth/start") {
+      await handleOAuthStart(req, res, {
+        config: deps.config,
+        cp: deps.cp,
+        bot: deps.bot,
+        oauthIpBucket,
+        clientIp,
+        fetchImpl: deps.fetchImpl,
+      });
+      return;
+    }
+
+    if (surface === "public" && deps.bot && req.method === "GET" && url === "/oauth/callback") {
+      await handleOAuthCallback(req, res, {
+        config: deps.config,
+        cp: deps.cp,
+        bot: deps.bot,
+        oauthIpBucket,
+        clientIp,
+        fetchImpl: deps.fetchImpl,
+      });
       return;
     }
 

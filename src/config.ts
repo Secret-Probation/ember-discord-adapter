@@ -10,6 +10,10 @@ export type AdapterConfig = {
   logLevel: "debug" | "info" | "warn" | "error";
   discordPublicKey: string;
   discordApplicationId: string;
+  discordClientSecret: string;
+  discordOAuthRedirectUri: string;
+  /** Fixed control-plane URL after OAuth callback (SPEC §6 step 4). */
+  discordOAuthConfirmUrl: string;
   discordBotToken: string;
   maxBodyBytes: number;
   signatureMaxSkewSec: number;
@@ -58,6 +62,9 @@ export function createConfig(overrides: Partial<AdapterConfig>): AdapterConfig {
     logLevel: (process.env.LOG_LEVEL?.trim().toLowerCase() as AdapterConfig["logLevel"]) || "info",
     discordPublicKey: process.env.DISCORD_PUBLIC_KEY?.trim() ?? "",
     discordApplicationId: process.env.DISCORD_APPLICATION_ID?.trim() ?? "",
+    discordClientSecret: process.env.DISCORD_CLIENT_SECRET?.trim() ?? "",
+    discordOAuthRedirectUri: process.env.DISCORD_OAUTH_REDIRECT_URI?.trim() ?? "",
+    discordOAuthConfirmUrl: process.env.EMBER_DISCORD_OAUTH_CONFIRM_URL?.trim() ?? "",
     discordBotToken: process.env.DISCORD_BOT_TOKEN?.trim() ?? "",
     maxBodyBytes: 256 * 1024,
     signatureMaxSkewSec: 5 * 60,

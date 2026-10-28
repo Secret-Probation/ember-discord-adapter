@@ -9,6 +9,7 @@ export type GuildRoleSummary = {
 
 export type DiscordBotRest = {
   leaveGuild(guildId: string): Promise<{ ok: true } | { ok: false; status: number }>;
+  getGuild(guildId: string): Promise<{ ok: true; name: string } | { ok: false; status: number }>;
   listGuildRoles(
     guildId: string,
   ): Promise<{ ok: true; roles: GuildRoleSummary[] } | { ok: false; status: number }>;
@@ -38,6 +39,22 @@ export function createDiscordBotRest(botToken: string, fetchImpl: typeof fetch =
         return { ok: true };
       }
       return { ok: false, status: res.status };
+    },
+
+    async getGuild(guildId: string) {
+      const res = await fetchImpl(`${DISCORD_API}/guilds/${guildId}`, {
+        method: "GET",
+        headers: botHeaders(botToken),
+      });
+      if (!res.ok) {
+        return { ok: false, status: res.status };
+      }
+      const json = (await res.json()) as { name?: string };
+      const name = typeof json.name === "string" ? json.name.trim() : "";
+      if (!name) {
+        return { ok: false, status: 502 };
+      }
+      return { ok: true, name };
     },
 
     async listGuildRoles(guildId: string) {
