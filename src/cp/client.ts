@@ -16,12 +16,26 @@ export type FanQueryResult =
   | { ok: true; status: 202; askJobId: string }
   | { ok: false; status: number; code: string; message: string };
 
+export type AskPollInput = {
+  askJobId: string;
+  guildId: string;
+  interactionId: string;
+};
+
+export type AskPollStatus = "queued" | "processing" | "completed" | "failed";
+
+export type AskPollResult =
+  | { ok: true; status: AskPollStatus; body: unknown }
+  | { ok: false; status: number; code: string; message: string };
+
 export interface ControlPlaneClient {
   fanQuery(input: FanQueryInput): Promise<FanQueryResult>;
+  pollAskJob(input: AskPollInput): Promise<AskPollResult>;
 }
 
 export class StubControlPlaneClient implements ControlPlaneClient {
   readonly calls: FanQueryInput[] = [];
+  readonly pollCalls: AskPollInput[] = [];
 
   async fanQuery(input: FanQueryInput): Promise<FanQueryResult> {
     this.calls.push(input);
@@ -29,6 +43,15 @@ export class StubControlPlaneClient implements ControlPlaneClient {
       ok: true,
       status: 200,
       body: { stub: true, mode: input.mode },
+    };
+  }
+
+  async pollAskJob(input: AskPollInput): Promise<AskPollResult> {
+    this.pollCalls.push(input);
+    return {
+      ok: true,
+      status: "completed",
+      body: { ask: { answer: "stub poll", citations: [] } },
     };
   }
 }
@@ -74,5 +97,46 @@ export class HttpControlPlaneClient implements ControlPlaneClient {
       };
     }
     return { ok: true, status: 200, body: json };
+  }
+
+  async pollAskJob(input: AskPollInput): Promise<AskPollResult> {
+    const base = this.baseUrl.replace(/\/$/, "");
+    const url = new URL(`${base}/api/internal/discord/ask/jobs/${encodeURIComponent(input.askJobId)}`);
+    url.searchParams.set("guild_id", input.guildId);
+    url.searchParams.set("interaction_id", input.interactionId);
+
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${this.bearer}`,
+      },
+    });
+
+    const json = (await res.json()) as {
+      status?: string;
+      error?: string;
+      message?: string;
+    };
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        status: res.status,
+        code: json.error ?? "cp_error",
+        message: json.message ?? "Control plane error",
+      };
+    }
+
+    const status = json.status;
+    if (status === "completed" || status === "failed" || status === "queued" || status === "processing") {
+      return { ok: true, status, body: json };
+    }
+
+    return {
+      ok: false,
+      status: 502,
+      code: "invalid_cp_response",
+      message: "Missing or invalid ask poll status",
+    };
   }
 }

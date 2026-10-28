@@ -6,6 +6,7 @@ import { deferredEphemeralBody, pongResponseBody } from "../discord/verify.js";
 import { formatFanQueryResponse } from "../format/embed.js";
 import { clipText, MESSAGE_CONTENT_MAX } from "../format/sanitize.js";
 import type { FixedWindowBucket, GuildRateLimiter, ProcessRpsLimiter } from "../rate-limit/buckets.js";
+import { runAskPollLoop } from "./ask-poll-loop.js";
 import { InteractionIdempotency } from "./idempotency.js";
 import {
   INTERACTION_APPLICATION_COMMAND,
@@ -31,6 +32,9 @@ export type InteractionHandlerDeps = {
   deferOnly?: boolean;
   /** Injectable fetch for webhook edits (tests). */
   fetchImpl?: typeof fetch;
+  /** Injectable clock / sleep for Ask poll loop (tests). */
+  nowMs?: () => number;
+  sleepMs?: (ms: number) => Promise<void>;
 };
 
 export type HandleInteractionResult =
@@ -149,10 +153,16 @@ async function runDeferredCommand(
         allowed_mentions: { parse: [] },
       };
     } else if (result.status === 202) {
-      payload = {
-        content: "Ember is working on your answer…",
-        allowed_mentions: { parse: [] },
-      };
+      await runAskPollLoop({
+        deps,
+        mode,
+        guildId,
+        interactionId: body.id ?? "",
+        applicationId,
+        token,
+        askJobId: result.askJobId,
+      });
+      return;
     } else {
       payload = formatFanQueryResponse(mode, result.body, {
         archiveWatchHost: deps.config.archiveWatchHost,
