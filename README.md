@@ -11,6 +11,16 @@ Official **Ember Discord adapter service** — HTTP Interactions, OAuth install,
 
 **Spec:** [docs/SPEC.md](docs/SPEC.md) (accepted 2026-10-28)
 
+## Development
+
+```bash
+npm install
+npm test
+EMBER_DISCORD_CP_STUB=1 DISCORD_PUBLIC_KEY=… DISCORD_APPLICATION_ID=… npm run dev
+```
+
+`POST /interactions` and `GET /health` are implemented (§22.2). Webhook edit + formatter wiring land in §22.5–6.
+
 ## Hosts
 
 | Host | Role |
