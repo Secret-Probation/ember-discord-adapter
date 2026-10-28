@@ -28,14 +28,38 @@ export type AskPollResult =
   | { ok: true; status: AskPollStatus; body: unknown }
   | { ok: false; status: number; code: string; message: string };
 
+export type OAuthStateResult = { ok: true } | { ok: false; message: string };
+
+export type PendingBindingInput = {
+  state: string;
+  guildId: string;
+  guildName: string;
+  permissions?: string;
+};
+
+export type PendingBindingResult = { ok: true } | { ok: false; message: string };
+
 export interface ControlPlaneClient {
   fanQuery(input: FanQueryInput): Promise<FanQueryResult>;
   pollAskJob(input: AskPollInput): Promise<AskPollResult>;
+  validateOAuthState(state: string, fetchImpl?: typeof fetch): Promise<OAuthStateResult>;
+  createPendingBinding(
+    input: PendingBindingInput,
+    fetchImpl?: typeof fetch,
+  ): Promise<PendingBindingResult>;
 }
 
 export class StubControlPlaneClient implements ControlPlaneClient {
   readonly calls: FanQueryInput[] = [];
   readonly pollCalls: AskPollInput[] = [];
+  readonly oauthStateCalls: string[] = [];
+  readonly bindingCalls: PendingBindingInput[] = [];
+
+  /** When set, validateOAuthState returns this instead of default ok. */
+  oauthStateResult: OAuthStateResult | null = null;
+
+  /** When set, createPendingBinding returns this instead of default ok. */
+  pendingBindingResult: PendingBindingResult | null = null;
 
   async fanQuery(input: FanQueryInput): Promise<FanQueryResult> {
     this.calls.push(input);
@@ -54,6 +78,16 @@ export class StubControlPlaneClient implements ControlPlaneClient {
       body: { ask: { answer: "stub poll", citations: [] } },
     };
   }
+
+  async validateOAuthState(state: string): Promise<OAuthStateResult> {
+    this.oauthStateCalls.push(state);
+    return this.oauthStateResult ?? { ok: true };
+  }
+
+  async createPendingBinding(input: PendingBindingInput): Promise<PendingBindingResult> {
+    this.bindingCalls.push(input);
+    return this.pendingBindingResult ?? { ok: true };
+  }
 }
 
 export class HttpControlPlaneClient implements ControlPlaneClient {
@@ -61,6 +95,66 @@ export class HttpControlPlaneClient implements ControlPlaneClient {
     private readonly baseUrl: string,
     private readonly bearer: string,
   ) {}
+
+  private cpUrl(path: string): string {
+    return `${this.baseUrl.replace(/\/$/, "")}${path}`;
+  }
+
+  private authHeaders(): HeadersInit {
+    return { Authorization: `Bearer ${this.bearer}` };
+  }
+
+  async validateOAuthState(state: string, fetchImpl: typeof fetch = fetch): Promise<OAuthStateResult> {
+    const url = this.cpUrl(`/api/internal/discord/oauth/state/${encodeURIComponent(state)}`);
+    let res: Response;
+    try {
+      res = await fetchImpl(url, { method: "GET", headers: this.authHeaders() });
+    } catch {
+      return { ok: false, message: "Control plane unreachable" };
+    }
+    if (res.status === 200) {
+      return { ok: true };
+    }
+    if (res.status === 404) {
+      return { ok: false, message: "OAuth state is unknown, expired, or already used" };
+    }
+    return { ok: false, message: "OAuth state validation failed" };
+  }
+
+  async createPendingBinding(
+    input: PendingBindingInput,
+    fetchImpl: typeof fetch = fetch,
+  ): Promise<PendingBindingResult> {
+    const body: Record<string, string> = {
+      state: input.state,
+      guild_id: input.guildId,
+      guild_name: input.guildName,
+    };
+    if (input.permissions) {
+      body.permissions = input.permissions;
+    }
+
+    let res: Response;
+    try {
+      res = await fetchImpl(this.cpUrl("/api/internal/discord/bindings"), {
+        method: "POST",
+        headers: { ...this.authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      return { ok: false, message: "Control plane unreachable" };
+    }
+
+    if (res.ok) {
+      return { ok: true };
+    }
+
+    const json = (await res.json().catch(() => ({}))) as { message?: string };
+    return {
+      ok: false,
+      message: json.message ?? "Failed to create pending Discord binding",
+    };
+  }
 
   async fanQuery(input: FanQueryInput): Promise<FanQueryResult> {
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/api/internal/discord/fan-query`, {
