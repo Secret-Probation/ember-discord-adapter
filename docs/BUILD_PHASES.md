@@ -3,7 +3,7 @@
 **Normative behavior:** [SPEC.md](./SPEC.md)  
 **Per-PR agent briefs:** [docs/pr/README.md](./pr/README.md) (one file per PR — **give that file to each agent**)
 
-**Status (2026-10-28):** **CP-1..7**, **CP-5/6**, **AD-1/2/5** merged. **AD-3** next (G2a).
+**Status (2026-10-28):** **CP-1..7**, **CP-5/6**, **AD-1/2/3/5** merged. **G2a** proof (seeded binding + compose) remains.
 
 ---
 
