@@ -14,7 +14,7 @@
 | CP-7 | sp-control-plane | `feat/discord-show-api` | open | [CP-7.md](./CP-7.md) |
 | CP-8 | sp-control-plane | `feat/discord-creator-ui` | open | [CP-8.md](./CP-8.md) |
 | CP-8b | sp-control-plane | `feat/discord-rollups-ui` | optional | [CP-8b.md](./CP-8b.md) |
-| AD-1 | [ember-discord-adapter](https://github.com/Secret-Probation/ember-discord-adapter) | — | **merged** | §22.2 on `main` |
+| AD-1 | [ember-discord-adapter](https://github.com/Secret-Probation/ember-discord-adapter) | — | **merged** | [AD-1.md](./AD-1.md) |
 | AD-2 | ember-discord-adapter | `feat/discord-webhook-formatter` | open | [AD-2.md](./AD-2.md) |
 | AD-3 | ember-discord-adapter | `feat/discord-ask-poll-loop` | open | [AD-3.md](./AD-3.md) |
 | AD-4 | ember-discord-adapter | `feat/discord-oauth` | open | [AD-4.md](./AD-4.md) |
