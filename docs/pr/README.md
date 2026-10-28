@@ -18,6 +18,7 @@
 | AD-1 | [ember-discord-adapter](https://github.com/Secret-Probation/ember-discord-adapter) | — | — | AD-2 | **merged** | [AD-1.md](./AD-1.md) |
 | AD-2 | ember-discord-adapter | — | AD-1 | AD-3, AD-6, AD-7 | **merged** | [AD-2.md](./AD-2.md) |
 | AD-3 | ember-discord-adapter | — | AD-2, CP-4, CP-5 | G2a | **merged** | [AD-3.md](./AD-3.md) |
+| G2a | both | `feat/discord-g2a-proof` | CP-1..5, AD-2, AD-3 | G2b | open | [G2A_PROOF.md](../G2A_PROOF.md) |
 | AD-4 | ember-discord-adapter | `feat/discord-oauth` | CP-7 | G3 | open | [AD-4.md](./AD-4.md) |
 | AD-5 | ember-discord-adapter | — | CP-1 | CP-8 | **merged** | [AD-5.md](./AD-5.md) |
 | AD-6 | ember-discord-adapter | `feat/discord-post-to-channel` | AD-2, CP-6 | G4 | open | [AD-6.md](./AD-6.md) |

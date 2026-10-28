@@ -3,7 +3,7 @@
 **Normative behavior:** [SPEC.md](./SPEC.md)  
 **Per-PR agent briefs:** [docs/pr/README.md](./pr/README.md) (one file per PR — **give that file to each agent**)
 
-**Status (2026-10-28):** **CP-1..7**, **CP-5/6**, **AD-1/2/3/5** merged. **G2a** proof (seeded binding + compose) remains.
+**Status (2026-10-28):** **CP-1..7**, **CP-5/6**, **AD-1/2/3/5** merged. **G2a** proof: `discord-g2a.db.test.ts` (compliance-db CI) + adapter `g2a-fan-query-flow.test.ts` — see [G2A_PROOF.md](./G2A_PROOF.md). **G3** in flight: **AD-4** + **CP-8**.
 
 ---
 
@@ -117,7 +117,7 @@ flowchart LR
 | Gate | Requires merged | Proof |
 |------|-----------------|--------|
 | **G1** | CP-1 | Migration + bearer tests green |
-| **G2a (dev)** | CP-1..5, AD-2, AD-3 | Integration tests + **seeded active binding** fixture; adapter/CP fan-query returns formatted ephemeral in CI or local compose (no real Discord guild required) |
+| **G2a (dev)** | CP-1..5, AD-2, AD-3 | **Done when merged:** [G2A_PROOF.md](./G2A_PROOF.md) — seeded binding DB test + adapter webhook embed test (no live guild) |
 | **G2b (staging)** | G2a + **G3** | Real `/ember search` + ask in a test guild after install + confirm |
 | **G3** | CP-7, CP-8, AD-4, AD-5 | Owner connect + confirm + `/ember about` |
 | **G4** | G2a, CP-6, AD-6, AD-7 | Post-to-channel + smoke script; optional **CP-9** on `.206` |
