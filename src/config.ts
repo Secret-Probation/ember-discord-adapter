@@ -2,9 +2,15 @@
 
 export type AdapterConfig = {
   port: number;
+  /** Public interactions/OAuth listener (edge vhost forwards here). */
+  publicHost: string;
+  /** Internal CP→adapter listener; must not be reachable from the public internet (SPEC §4). */
+  internalHost: string;
+  internalPort: number;
   logLevel: "debug" | "info" | "warn" | "error";
   discordPublicKey: string;
   discordApplicationId: string;
+  discordBotToken: string;
   maxBodyBytes: number;
   signatureMaxSkewSec: number;
   unsignedIpLimitPerMin: number;
@@ -43,11 +49,16 @@ export function loadConfig(): AdapterConfig {
 }
 
 export function createConfig(overrides: Partial<AdapterConfig>): AdapterConfig {
+  const port = parseIntEnv("PORT", 8787);
   const base: AdapterConfig = {
-    port: parseIntEnv("PORT", 8787),
+    port,
+    publicHost: process.env.PUBLIC_HOST?.trim() || "0.0.0.0",
+    internalHost: process.env.INTERNAL_HOST?.trim() || "127.0.0.1",
+    internalPort: parseIntEnv("INTERNAL_PORT", port + 1),
     logLevel: (process.env.LOG_LEVEL?.trim().toLowerCase() as AdapterConfig["logLevel"]) || "info",
     discordPublicKey: process.env.DISCORD_PUBLIC_KEY?.trim() ?? "",
     discordApplicationId: process.env.DISCORD_APPLICATION_ID?.trim() ?? "",
+    discordBotToken: process.env.DISCORD_BOT_TOKEN?.trim() ?? "",
     maxBodyBytes: 256 * 1024,
     signatureMaxSkewSec: 5 * 60,
     unsignedIpLimitPerMin: parseIntEnv("DISCORD_UNSIGNED_IP_LIMIT_PER_MIN", 60),
