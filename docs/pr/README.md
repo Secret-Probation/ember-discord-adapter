@@ -9,8 +9,8 @@
 | CP-2 | sp-control-plane | — | CP-1 | CP-4 | **merged** | [CP-2.md](./CP-2.md) |
 | CP-3 | sp-control-plane | — | CP-1 | CP-4 | **merged** | [CP-3.md](./CP-3.md) |
 | CP-4 | sp-control-plane | — | CP-1, CP-2, CP-3 | CP-5, CP-6, G2a | **merged** | [CP-4.md](./CP-4.md) |
-| CP-5 | sp-control-plane | `feat/discord-ask-poll` | CP-4 | AD-3, G2a | open | [CP-5.md](./CP-5.md) |
-| CP-6 | sp-control-plane | `feat/discord-rollups` | CP-4 | AD-6, CP-8b | open | [CP-6.md](./CP-6.md) |
+| CP-5 | sp-control-plane | — | CP-4 | AD-3, G2a | **merged** | [CP-5.md](./CP-5.md) |
+| CP-6 | sp-control-plane | — | CP-4 | AD-6, CP-8b | **merged** | [CP-6.md](./CP-6.md) |
 | CP-7 | sp-control-plane | — | CP-1 | AD-4, CP-8, G3 | **merged** | [CP-7.md](./CP-7.md) |
 | CP-8 | sp-control-plane | `feat/discord-creator-ui` | CP-7, AD-5 | G3 | open | [CP-8.md](./CP-8.md) |
 | CP-8b | sp-control-plane | `feat/discord-rollups-ui` | CP-6 | — | optional | [CP-8b.md](./CP-8b.md) |
