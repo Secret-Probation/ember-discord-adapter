@@ -2,20 +2,27 @@ import http from "node:http";
 
 import type { AdapterConfig } from "../config.js";
 import type { ControlPlaneClient } from "../cp/client.js";
+import type { DiscordBotRest } from "../discord/bot-rest.js";
 import { verifyDiscordRequest } from "../discord/verify.js";
+import { handleInternalRoute } from "./internal-routes.js";
 import { createInteractionHandler } from "../interactions/handler.js";
 import { InteractionIdempotency } from "../interactions/idempotency.js";
 import type { InteractionPayload } from "../interactions/types.js";
 import { FixedWindowBucket, GuildRateLimiter, ProcessRpsLimiter } from "../rate-limit/buckets.js";
 
+export type HttpServerSurface = "public" | "internal";
+
 export type HttpServerDeps = {
   config: AdapterConfig;
   cp: ControlPlaneClient;
+  bot?: DiscordBotRest;
+  surface?: HttpServerSurface;
   deferOnly?: boolean;
   fetchImpl?: typeof fetch;
 };
 
 export function createHttpServer(deps: HttpServerDeps): http.Server {
+  const surface = deps.surface ?? "public";
   const unsignedIpBucket = new FixedWindowBucket(deps.config.unsignedIpLimitPerMin, 60_000);
   const guildLimiter = new GuildRateLimiter(deps.config.guildLimitPerMin, deps.config.guildBurst);
   const processLimiter = new ProcessRpsLimiter(deps.config.processRps);
@@ -46,6 +53,23 @@ export function createHttpServer(deps: HttpServerDeps): http.Server {
     if (req.method === "GET" && url === "/health") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok" }));
+      return;
+    }
+
+    if (surface === "public" && url.startsWith("/internal/")) {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "not_found" }));
+      return;
+    }
+
+    if (surface === "internal" && url.startsWith("/internal/")) {
+      await handleInternalRoute(req, res, url, deps.config, deps.bot);
+      return;
+    }
+
+    if (surface === "internal") {
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "not_found" }));
       return;
     }
 

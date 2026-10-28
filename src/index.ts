@@ -1,5 +1,6 @@
 import { assertInteractionSecrets, loadConfig } from "./config.js";
 import { HttpControlPlaneClient, StubControlPlaneClient } from "./cp/client.js";
+import { createDiscordBotRest } from "./discord/bot-rest.js";
 import { createHttpServer } from "./http/server.js";
 
 const config = loadConfig();
@@ -10,10 +11,19 @@ const cp = useStub
   ? new StubControlPlaneClient()
   : new HttpControlPlaneClient(config.cpBaseUrl, config.cpServiceBearer);
 
-const server = createHttpServer({ config, cp });
+const bot = config.discordBotToken ? createDiscordBotRest(config.discordBotToken) : undefined;
 
-server.listen(config.port, () => {
-  console.info(`ember-discord-adapter listening on ${config.port} cp_stub=${useStub}`);
+const publicServer = createHttpServer({ config, cp, surface: "public" });
+const internalServer = createHttpServer({ config, cp, surface: "internal", bot });
+
+publicServer.listen(config.port, config.publicHost, () => {
+  console.info(
+    `ember-discord-adapter public ${config.publicHost}:${config.port} cp_stub=${useStub}`,
+  );
+});
+
+internalServer.listen(config.internalPort, config.internalHost, () => {
+  console.info(`ember-discord-adapter internal ${config.internalHost}:${config.internalPort}`);
 });
 
 let shuttingDown = false;
@@ -24,9 +34,18 @@ function shutdown(signal: string): void {
   }
   shuttingDown = true;
   console.info(`shutdown ${signal}`);
-  server.stopAccepting?.();
+  publicServer.stopAccepting?.();
+  internalServer.stopAccepting?.();
   setTimeout(() => {
-    server.close(() => process.exit(0));
+    let pending = 2;
+    const done = () => {
+      pending -= 1;
+      if (pending === 0) {
+        process.exit(0);
+      }
+    };
+    publicServer.close(done);
+    internalServer.close(done);
   }, config.shutdownGraceMs).unref();
 }
 

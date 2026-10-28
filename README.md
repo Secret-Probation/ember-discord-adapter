@@ -22,6 +22,15 @@ EMBER_DISCORD_CP_STUB=1 DISCORD_PUBLIC_KEY=… DISCORD_APPLICATION_ID=… npm ru
 
 `POST /interactions` and `GET /health` are implemented (§22.2). Webhook edit + formatter wiring land in §22.5–6.
 
+### Listeners (SPEC §4)
+
+| Env | Default | Serves |
+|-----|---------|--------|
+| `PUBLIC_HOST` + `PORT` | `0.0.0.0:8787` | `GET /health`, `POST /interactions`, OAuth (later) |
+| `INTERNAL_HOST` + `INTERNAL_PORT` | `127.0.0.1:8788` | `POST /internal/guilds/{id}/leave`, `GET …/roles` |
+
+The public listener returns **404** for `/internal/*`. Only the internal bind address (docker network on `.206`) should reach CP→adapter routes. Auth: `Authorization: Bearer` = `EMBER_DISCORD_ADAPTER_INTERNAL_TOKEN`. Discord API calls use `DISCORD_BOT_TOKEN` on the adapter only.
+
 ## Hosts
 
 | Host | Role |
