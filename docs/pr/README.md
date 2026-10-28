@@ -5,7 +5,7 @@
 | ID | Repo | Branch | Depends on | Blocks | Status | Brief |
 |----|------|--------|------------|--------|--------|--------|
 | V-1 | [Voxen](https://github.com/Secret-Probation/Voxen) | `docs/discord-pointer-push` | — | — | open | [V-1.md](./V-1.md) |
-| CP-1 | [sp-control-plane](https://github.com/Secret-Probation/Bens-control-plane) | `feat/discord-cp-foundation` | — | CP-2, CP-3, CP-4, CP-7, AD-5 | open | [CP-1.md](./CP-1.md) |
+| CP-1 | [sp-control-plane](https://github.com/Secret-Probation/Bens-control-plane) | — | — | CP-2, CP-3, CP-4, CP-7, AD-5 | **merged** | [CP-1.md](./CP-1.md) |
 | CP-2 | sp-control-plane | `feat/discord-router-primitives` | CP-1 | CP-4 | open | [CP-2.md](./CP-2.md) |
 | CP-3 | sp-control-plane | `feat/discord-fan-ask-daily-cap` | CP-1 | CP-4 | open | [CP-3.md](./CP-3.md) |
 | CP-4 | sp-control-plane | `feat/discord-fan-query` | CP-1, CP-2, CP-3 | CP-5, CP-6, G2a | open | [CP-4.md](./CP-4.md) |
@@ -16,7 +16,7 @@
 | CP-8b | sp-control-plane | `feat/discord-rollups-ui` | CP-6 | — | optional | [CP-8b.md](./CP-8b.md) |
 | CP-9 | sp-control-plane / ops | `feat/discord-hybrid-compose` | AD-7, CP-1 | Pilot | optional | [CP-9.md](./CP-9.md) |
 | AD-1 | [ember-discord-adapter](https://github.com/Secret-Probation/ember-discord-adapter) | — | — | AD-2 | **merged** | [AD-1.md](./AD-1.md) |
-| AD-2 | ember-discord-adapter | `feat/discord-webhook-formatter` | AD-1 | AD-3, AD-6, AD-7 | open | [AD-2.md](./AD-2.md) |
+| AD-2 | ember-discord-adapter | — | AD-1 | AD-3, AD-6, AD-7 | **merged** | [AD-2.md](./AD-2.md) |
 | AD-3 | ember-discord-adapter | `feat/discord-ask-poll-loop` | AD-2, CP-4, CP-5 | G2a | open | [AD-3.md](./AD-3.md) |
 | AD-4 | ember-discord-adapter | `feat/discord-oauth` | CP-7 | G3 | open | [AD-4.md](./AD-4.md) |
 | AD-5 | ember-discord-adapter | `feat/discord-internal-routes` | CP-1 | CP-8 | open | [AD-5.md](./AD-5.md) |
