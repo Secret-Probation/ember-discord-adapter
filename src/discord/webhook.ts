@@ -1,3 +1,5 @@
+import { recordWebhookHttpStatus } from "../observability/metrics.js";
+
 /** Interaction webhook client — PATCH @original (SPEC §11). Uses interaction token, not bot token. */
 
 export type AllowedMentions = { parse: [] };
@@ -23,9 +25,18 @@ export type DiscordLinkButton = {
   url: string;
 };
 
+export type DiscordCustomButton = {
+  type: 2;
+  style: 1 | 2 | 3 | 4;
+  label: string;
+  custom_id: string;
+};
+
+export type DiscordMessageComponent = DiscordLinkButton | DiscordCustomButton;
+
 export type DiscordActionRow = {
   type: 1;
-  components: DiscordLinkButton[];
+  components: DiscordMessageComponent[];
 };
 
 export type EditInteractionMessageInput = {
@@ -60,6 +71,7 @@ export async function editOriginalInteractionMessage(input: EditInteractionMessa
       headers: webhookHeaders(),
       body,
     });
+    recordWebhookHttpStatus(res.status);
     if (res.ok) {
       return true;
     }
@@ -74,5 +86,6 @@ export async function editOriginalInteractionMessage(input: EditInteractionMessa
     headers: webhookHeaders(),
     body,
   });
+  recordWebhookHttpStatus(postRes.status);
   return postRes.ok;
 }
