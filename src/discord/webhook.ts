@@ -23,9 +23,18 @@ export type DiscordLinkButton = {
   url: string;
 };
 
+export type DiscordCustomButton = {
+  type: 2;
+  style: 1 | 2 | 3 | 4;
+  label: string;
+  custom_id: string;
+};
+
+export type DiscordMessageComponent = DiscordLinkButton | DiscordCustomButton;
+
 export type DiscordActionRow = {
   type: 1;
-  components: DiscordLinkButton[];
+  components: DiscordMessageComponent[];
 };
 
 export type EditInteractionMessageInput = {

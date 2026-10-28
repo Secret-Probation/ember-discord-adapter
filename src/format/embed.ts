@@ -9,6 +9,7 @@ import {
 } from "./sanitize.js";
 import type { FanQueryMode } from "../cp/client.js";
 import type { DiscordActionRow, DiscordEmbed, WebhookMessagePayload } from "../discord/webhook.js";
+import type { PostToChannelCache } from "../interactions/post-cache.js";
 
 const EMBED_DESCRIPTION_MAX = 4096;
 const EMBED_TITLE_MAX = 256;
@@ -17,6 +18,14 @@ const MAX_SEARCH_MOMENTS = 5;
 const MAX_ASK_CITATIONS = 3;
 const FOOTER_TEXT = "Ember · released episodes only";
 const GENERIC_MODE_MESSAGE = "Ember finished, but there is nothing to show.";
+export const POST_TO_CHANNEL_BUTTON_LABEL = "Post to channel";
+export const POST_CUSTOM_ID_PREFIX = "post:";
+
+export type ShareRollupFields = {
+  jobId: string;
+  playbackStartSeconds: number;
+  speaker?: string | null;
+};
 
 export type FormatEmbedOptions = {
   archiveWatchHost?: string | null;
@@ -297,6 +306,144 @@ function trimToCaps(payload: WebhookMessagePayload): WebhookMessagePayload {
     embeds: working,
     components: components && components.length > 0 ? components : undefined,
   };
+}
+
+export function postCustomId(sourceInteractionId: string): string {
+  return `${POST_CUSTOM_ID_PREFIX}${sourceInteractionId}`;
+}
+
+export function parsePostCustomId(customId: string): string | null {
+  const trimmed = customId.trim();
+  if (!trimmed.startsWith(POST_CUSTOM_ID_PREFIX)) {
+    return null;
+  }
+  const id = trimmed.slice(POST_CUSTOM_ID_PREFIX.length).trim();
+  return id.length > 0 ? id : null;
+}
+
+function postButtonRow(sourceInteractionId: string): DiscordActionRow {
+  return {
+    type: 1,
+    components: [
+      {
+        type: 2,
+        style: 2,
+        label: clipText(POST_TO_CHANNEL_BUTTON_LABEL, 80),
+        custom_id: clipText(postCustomId(sourceInteractionId), 100),
+      },
+    ],
+  };
+}
+
+function isPostButtonComponent(component: DiscordActionRow["components"][number]): boolean {
+  return (
+    component.type === 2 &&
+    component.style !== 5 &&
+    "custom_id" in component &&
+    typeof component.custom_id === "string" &&
+    component.custom_id.startsWith(POST_CUSTOM_ID_PREFIX)
+  );
+}
+
+/** Remove post-to-channel button rows — public channel posts must not include the button. */
+export function publicChannelPayload(payload: WebhookMessagePayload): WebhookMessagePayload {
+  const components = payload.components?.filter((row) => !row.components.some(isPostButtonComponent));
+  return {
+    ...payload,
+    components: components && components.length > 0 ? components : undefined,
+    allowed_mentions: { parse: [] },
+  };
+}
+
+/** Attach post button to ephemeral fan-query replies when allowed. */
+export function withPostToChannelButton(
+  payload: WebhookMessagePayload,
+  sourceInteractionId: string,
+): WebhookMessagePayload {
+  const base = publicChannelPayload(payload);
+  return {
+    ...base,
+    components: [...(base.components ?? []), postButtonRow(sourceInteractionId)],
+    allowed_mentions: { parse: [] },
+  };
+}
+
+function firstShareFields(moments: MomentLike[]): ShareRollupFields | null {
+  for (const moment of moments) {
+    const jobId = moment.job_id?.trim();
+    if (!jobId) {
+      continue;
+    }
+    const playbackRaw = moment.playback_start_seconds ?? moment.start_seconds ?? null;
+    const playbackStartSeconds =
+      playbackRaw != null && Number.isFinite(playbackRaw) ? Math.max(0, Math.floor(playbackRaw)) : 0;
+    return {
+      jobId,
+      playbackStartSeconds,
+      speaker: moment.speaker?.trim() ? moment.speaker.trim() : null,
+    };
+  }
+  return null;
+}
+
+/** First rendered moment with a job id — used for §14 share rollup after public post. */
+export function extractShareRollupFields(mode: FanQueryMode, body: unknown): ShareRollupFields | null {
+  switch (mode) {
+    case "search":
+      return firstShareFields(readMoments(body));
+    case "ask": {
+      const ask = readAsk(body);
+      return ask ? firstShareFields(ask.citations) : null;
+    }
+    default:
+      return null;
+  }
+}
+
+/** Whether the post button may appear on a successful fan-query reply. */
+export function shouldOfferPostToChannel(mode: FanQueryMode, body: unknown): boolean {
+  if (mode === "about") {
+    return false;
+  }
+  if (mode === "search") {
+    return readMoments(body).length > 0;
+  }
+  if (mode === "ask") {
+    const ask = readAsk(body);
+    return ask != null && ask.answer.trim().length > 0;
+  }
+  return false;
+}
+
+/** Cache public payload and attach post button for ephemeral fan-query replies. */
+export function finalizeFanQueryEphemeralPayload(input: {
+  mode: FanQueryMode;
+  body: unknown;
+  sourceInteractionId: string;
+  invokerUserId: string;
+  guildId: string;
+  formatted: WebhookMessagePayload;
+  postCache: PostToChannelCache;
+}): WebhookMessagePayload {
+  if (!shouldOfferPostToChannel(input.mode, input.body)) {
+    return input.formatted;
+  }
+  const shareFields = extractShareRollupFields(input.mode, input.body);
+  const publicPayload = publicChannelPayload(input.formatted);
+  input.postCache.set(
+    input.sourceInteractionId,
+    input.invokerUserId,
+    input.guildId,
+    publicPayload,
+    shareFields
+      ? {
+          jobId: shareFields.jobId,
+          playbackStartSeconds: shareFields.playbackStartSeconds,
+          speaker: shareFields.speaker,
+        }
+      : null,
+  );
+  return withPostToChannelButton(input.formatted, input.sourceInteractionId);
 }
 
 /** Build webhook payload for a successful sync fan-query body. */

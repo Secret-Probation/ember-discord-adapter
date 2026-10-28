@@ -4,6 +4,7 @@ import { createConfig } from "../src/config.js";
 import type { ControlPlaneClient, FanQueryInput, FanQueryResult } from "../src/cp/client.js";
 import { createInteractionHandler } from "../src/interactions/handler.js";
 import { InteractionIdempotency } from "../src/interactions/idempotency.js";
+import { PostToChannelCache } from "../src/interactions/post-cache.js";
 import type { InteractionPayload } from "../src/interactions/types.js";
 import { FixedWindowBucket, GuildRateLimiter, ProcessRpsLimiter } from "../src/rate-limit/buckets.js";
 
@@ -51,6 +52,9 @@ describe("G2a fan-query → webhook embed", () => {
       async pollAskJob(): Promise<FanQueryResult> {
         throw new Error("not used");
       },
+      async recordDiscordShare() {
+        return { ok: true };
+      },
     };
 
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 200 }));
@@ -68,6 +72,7 @@ describe("G2a fan-query → webhook embed", () => {
       guildLimiter: new GuildRateLimiter(1000, 1000),
       processLimiter: new ProcessRpsLimiter(1000),
       idempotency: new InteractionIdempotency(60_000),
+      postCache: new PostToChannelCache(),
       fetchImpl,
     });
 

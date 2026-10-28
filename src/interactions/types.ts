@@ -11,6 +11,8 @@ export type InteractionPayload = {
   token?: string;
   data?: {
     name?: string;
+    custom_id?: string;
+    component_type?: number;
     options?: Array<{ name: string; type: number; value?: string }>;
   };
   member?: { roles?: string[]; user?: { id?: string } };

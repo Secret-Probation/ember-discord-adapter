@@ -11,6 +11,7 @@ import type {
 import { CP_ERROR_COPY, FAN_QUERY_GENERIC_ERROR } from "../src/cp/error-map.js";
 import { createInteractionHandler } from "../src/interactions/handler.js";
 import { InteractionIdempotency } from "../src/interactions/idempotency.js";
+import { PostToChannelCache } from "../src/interactions/post-cache.js";
 import type { InteractionPayload } from "../src/interactions/types.js";
 import { FixedWindowBucket, GuildRateLimiter, ProcessRpsLimiter } from "../src/rate-limit/buckets.js";
 
@@ -56,6 +57,7 @@ function handlerDeps(cp: ControlPlaneClient, fetchImpl: typeof fetch) {
     guildLimiter: new GuildRateLimiter(1000, 1000),
     processLimiter: new ProcessRpsLimiter(1000),
     idempotency: new InteractionIdempotency(60_000),
+    postCache: new PostToChannelCache(),
     fetchImpl,
   };
 }
@@ -74,6 +76,9 @@ describe("runDeferredCommand via createInteractionHandler", () => {
       async pollAskJob(_input: AskPollInput): Promise<AskPollResult> {
         throw new Error("poll should not run");
       },
+      async recordDiscordShare() {
+        throw new Error("share should not run");
+      },
     };
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 200 }));
     const handle = createInteractionHandler(handlerDeps(cp, fetchImpl));
@@ -88,6 +93,7 @@ describe("runDeferredCommand via createInteractionHandler", () => {
     const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body));
     expect(body.content).toBe(CP_ERROR_COPY.discord_not_linked);
     expect(body.allowed_mentions).toEqual({ parse: [] });
+    expect(body.components).toBeUndefined();
   });
 
   it("PATCHes generic copy when fan-query throws", async () => {
@@ -97,6 +103,9 @@ describe("runDeferredCommand via createInteractionHandler", () => {
       },
       async pollAskJob(_input: AskPollInput): Promise<AskPollResult> {
         throw new Error("poll should not run");
+      },
+      async recordDiscordShare() {
+        throw new Error("share should not run");
       },
     };
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 200 }));
@@ -125,6 +134,9 @@ describe("runDeferredCommand via createInteractionHandler", () => {
           status: "completed",
           body: { status: "completed", answer: "Poll answer.", citations: [] },
         };
+      },
+      async recordDiscordShare() {
+        return { ok: true };
       },
     };
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 200 }));

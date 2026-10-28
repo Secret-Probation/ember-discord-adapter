@@ -10,6 +10,7 @@ import {
   ASK_STILL_WORKING_AT_MS,
   runAskPollLoop,
 } from "../src/interactions/ask-poll-loop.js";
+import { PostToChannelCache } from "../src/interactions/post-cache.js";
 
 const applicationId = "417719114458901252";
 const guildId = "9876543210987654321";
@@ -31,8 +32,13 @@ function pollSequence(statuses: AskPollResult[]): ControlPlaneClient {
       }
       return next;
     },
+    async recordDiscordShare() {
+      return { ok: true };
+    },
   };
 }
+
+const invokerUserId = "111";
 
 describe("runAskPollLoop", () => {
   it("edits thinking then formatted ask when poll goes queued → processing → completed", async () => {
@@ -60,6 +66,7 @@ describe("runAskPollLoop", () => {
       deps: {
         config: createConfig({ discordApplicationId: applicationId }),
         cp,
+        postCache: new PostToChannelCache(),
         fetchImpl,
         nowMs: () => now,
         sleepMs,
@@ -67,6 +74,7 @@ describe("runAskPollLoop", () => {
       mode: "ask",
       guildId,
       interactionId,
+      invokerUserId,
       applicationId,
       token: "interaction-token",
       askJobId,
@@ -90,6 +98,7 @@ describe("runAskPollLoop", () => {
       deps: {
         config: createConfig({ discordApplicationId: applicationId }),
         cp,
+        postCache: new PostToChannelCache(),
         fetchImpl,
         nowMs: () => 0,
         sleepMs: async () => {},
@@ -97,6 +106,7 @@ describe("runAskPollLoop", () => {
       mode: "ask",
       guildId,
       interactionId,
+      invokerUserId,
       applicationId,
       token: "interaction-token",
       askJobId,
@@ -128,6 +138,7 @@ describe("runAskPollLoop", () => {
       deps: {
         config: createConfig({ discordApplicationId: applicationId }),
         cp,
+        postCache: new PostToChannelCache(),
         fetchImpl,
         nowMs: () => now,
         sleepMs,
@@ -135,6 +146,7 @@ describe("runAskPollLoop", () => {
       mode: "ask",
       guildId,
       interactionId,
+      invokerUserId,
       applicationId,
       token: "interaction-token",
       askJobId,

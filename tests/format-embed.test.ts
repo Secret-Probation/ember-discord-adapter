@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { CP_ERROR_COPY, fanQueryErrorMessage } from "../src/cp/error-map.js";
-import { combinedEmbedCharCount, formatFanQueryResponse } from "../src/format/embed.js";
+import {
+  POST_CUSTOM_ID_PREFIX,
+  combinedEmbedCharCount,
+  finalizeFanQueryEphemeralPayload,
+  formatFanQueryResponse,
+} from "../src/format/embed.js";
+import { PostToChannelCache } from "../src/interactions/post-cache.js";
 import { EMBED_FIELD_MAX, sanitizeFanText } from "../src/format/sanitize.js";
 
 describe("fanQueryErrorMessage", () => {
@@ -152,6 +158,50 @@ describe("formatFanQueryResponse ask", () => {
     expect(payload.embeds?.[0]?.description).toContain("Here is the answer.");
     expect(payload.embeds?.[0]?.fields).toHaveLength(3);
     expect(payload.embeds?.[0]?.footer?.text).toBe("Ember · released episodes only");
+  });
+});
+
+describe("post to channel button", () => {
+  it("adds post button on successful search and omits it from public payload", () => {
+    const body = {
+      search: {
+        hits: [
+          {
+            job_id: "job-1",
+            episode_title: "Ep",
+            speaker: "Host",
+            playback_start_seconds: 10,
+            snippet: "hi",
+          },
+        ],
+      },
+    };
+    const formatted = formatFanQueryResponse("search", body);
+    const postCache = new PostToChannelCache();
+    const ephemeral = finalizeFanQueryEphemeralPayload({
+      mode: "search",
+      body,
+      sourceInteractionId: "9999999999999999999",
+      invokerUserId: "111",
+      guildId: "guild",
+      formatted,
+      postCache,
+    });
+
+    const postRow = ephemeral.components?.find((row) =>
+      row.components.some(
+        (c) => "custom_id" in c && c.custom_id === `${POST_CUSTOM_ID_PREFIX}9999999999999999999`,
+      ),
+    );
+    expect(postRow).toBeDefined();
+
+    const cached = postCache.get("9999999999999999999");
+    expect(cached?.share?.jobId).toBe("job-1");
+    const publicHasPostButton =
+      cached?.publicPayload.components?.some((row) =>
+        row.components.some((c) => "custom_id" in c && c.custom_id.startsWith(POST_CUSTOM_ID_PREFIX)),
+      ) ?? false;
+    expect(publicHasPostButton).toBe(false);
   });
 });
 
