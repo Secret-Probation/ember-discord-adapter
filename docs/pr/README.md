@@ -8,7 +8,7 @@
 | CP-1 | [sp-control-plane](https://github.com/Secret-Probation/Bens-control-plane) | — | — | CP-2, CP-3, CP-4, CP-7, AD-5 | **merged** | [CP-1.md](./CP-1.md) |
 | CP-2 | sp-control-plane | — | CP-1 | CP-4 | **merged** | [CP-2.md](./CP-2.md) |
 | CP-3 | sp-control-plane | — | CP-1 | CP-4 | **merged** | [CP-3.md](./CP-3.md) |
-| CP-4 | sp-control-plane | `feat/discord-fan-query` | CP-1, CP-2, CP-3 | CP-5, CP-6, G2a | open | [CP-4.md](./CP-4.md) |
+| CP-4 | sp-control-plane | — | CP-1, CP-2, CP-3 | CP-5, CP-6, G2a | **merged** | [CP-4.md](./CP-4.md) |
 | CP-5 | sp-control-plane | `feat/discord-ask-poll` | CP-4 | AD-3, G2a | open | [CP-5.md](./CP-5.md) |
 | CP-6 | sp-control-plane | `feat/discord-rollups` | CP-4 | AD-6, CP-8b | open | [CP-6.md](./CP-6.md) |
 | CP-7 | sp-control-plane | — | CP-1 | AD-4, CP-8, G3 | **merged** | [CP-7.md](./CP-7.md) |
