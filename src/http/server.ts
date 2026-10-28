@@ -12,6 +12,7 @@ export type HttpServerDeps = {
   config: AdapterConfig;
   cp: ControlPlaneClient;
   deferOnly?: boolean;
+  fetchImpl?: typeof fetch;
 };
 
 export function createHttpServer(deps: HttpServerDeps): http.Server {
@@ -28,6 +29,7 @@ export function createHttpServer(deps: HttpServerDeps): http.Server {
     processLimiter,
     idempotency,
     deferOnly: deps.deferOnly,
+    fetchImpl: deps.fetchImpl,
   });
 
   let accepting = true;

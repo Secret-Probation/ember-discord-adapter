@@ -16,6 +16,8 @@ export type AdapterConfig = {
   cpBaseUrl: string;
   cpServiceBearer: string;
   adapterInternalToken: string;
+  /** Optional https host for archive watch links (SPEC §13). */
+  archiveWatchHost: string | null;
 };
 
 function parseIntEnv(name: string, fallback: number): number {
@@ -57,6 +59,7 @@ export function createConfig(overrides: Partial<AdapterConfig>): AdapterConfig {
     cpBaseUrl: process.env.EMBER_DISCORD_CP_BASE_URL?.trim() ?? "http://127.0.0.1:3000",
     cpServiceBearer: process.env.EMBER_DISCORD_SERVICE_BEARER?.trim() ?? "",
     adapterInternalToken: process.env.EMBER_DISCORD_ADAPTER_INTERNAL_TOKEN?.trim() ?? "",
+    archiveWatchHost: process.env.EMBER_ARCHIVE_WATCH_HOST?.trim() || null,
   };
   return { ...base, ...overrides };
 }
