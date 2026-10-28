@@ -1,12 +1,32 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createConfig } from "../src/config.js";
-import type { ControlPlaneClient, FanQueryInput, FanQueryResult } from "../src/cp/client.js";
+import type {
+  AskPollInput,
+  AskPollResult,
+  ControlPlaneClient,
+  FanQueryInput,
+  FanQueryResult,
+} from "../src/cp/client.js";
 import { CP_ERROR_COPY, FAN_QUERY_GENERIC_ERROR } from "../src/cp/error-map.js";
 import { createInteractionHandler } from "../src/interactions/handler.js";
 import { InteractionIdempotency } from "../src/interactions/idempotency.js";
 import type { InteractionPayload } from "../src/interactions/types.js";
 import { FixedWindowBucket, GuildRateLimiter, ProcessRpsLimiter } from "../src/rate-limit/buckets.js";
+
+function slashAskInteraction(id: string): InteractionPayload {
+  return {
+    type: 2,
+    id,
+    token: "interaction-token",
+    guild_id: "9876543210987654321",
+    data: {
+      name: "ember",
+      options: [{ name: "ask", type: 1, options: [{ name: "query", type: 3, value: "who hosts?" }] }],
+    },
+    member: { roles: [], user: { id: "111" } },
+  };
+}
 
 function slashSearchInteraction(id: string): InteractionPayload {
   return {
@@ -51,6 +71,9 @@ describe("runDeferredCommand via createInteractionHandler", () => {
           message: "missing binding",
         };
       },
+      async pollAskJob(_input: AskPollInput): Promise<AskPollResult> {
+        throw new Error("poll should not run");
+      },
     };
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 200 }));
     const handle = createInteractionHandler(handlerDeps(cp, fetchImpl));
@@ -72,6 +95,9 @@ describe("runDeferredCommand via createInteractionHandler", () => {
       async fanQuery(_input: FanQueryInput): Promise<FanQueryResult> {
         throw new Error("network down");
       },
+      async pollAskJob(_input: AskPollInput): Promise<AskPollResult> {
+        throw new Error("poll should not run");
+      },
     };
     const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 200 }));
     const handle = createInteractionHandler(handlerDeps(cp, fetchImpl));
@@ -85,5 +111,33 @@ describe("runDeferredCommand via createInteractionHandler", () => {
 
     const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body));
     expect(body.content).toBe(FAN_QUERY_GENERIC_ERROR);
+  });
+
+  it("polls CP after fan-query 202 and PATCHes completed ask embed", async () => {
+    const cp: ControlPlaneClient = {
+      async fanQuery(_input: FanQueryInput): Promise<FanQueryResult> {
+        return { ok: true, status: 202, askJobId: "job-1" };
+      },
+      async pollAskJob(input: AskPollInput): Promise<AskPollResult> {
+        expect(input.interactionId).toBe("4444444444444444444");
+        return {
+          ok: true,
+          status: "completed",
+          body: { status: "completed", answer: "Poll answer.", citations: [] },
+        };
+      },
+    };
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 200 }));
+    const handle = createInteractionHandler(handlerDeps(cp, fetchImpl));
+
+    await handle({
+      rawBody: Buffer.from("{}"),
+      clientIp: "127.0.0.1",
+      parsed: slashAskInteraction("4444444444444444444"),
+    });
+    await vi.waitFor(() => expect(fetchImpl.mock.calls.length).toBeGreaterThanOrEqual(2));
+
+    const lastBody = JSON.parse(String(fetchImpl.mock.calls.at(-1)?.[1]?.body));
+    expect(lastBody.embeds?.[0]?.description).toContain("Poll answer.");
   });
 });
