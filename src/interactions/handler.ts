@@ -1,6 +1,10 @@
 import type { AdapterConfig } from "../config.js";
 import type { ControlPlaneClient, FanQueryMode } from "../cp/client.js";
+import { fanQueryErrorMessage } from "../cp/error-map.js";
+import { editOriginalInteractionMessage, type WebhookMessagePayload } from "../discord/webhook.js";
 import { deferredEphemeralBody, pongResponseBody } from "../discord/verify.js";
+import { formatFanQueryResponse } from "../format/embed.js";
+import { clipText, MESSAGE_CONTENT_MAX } from "../format/sanitize.js";
 import type { FixedWindowBucket, GuildRateLimiter, ProcessRpsLimiter } from "../rate-limit/buckets.js";
 import { InteractionIdempotency } from "./idempotency.js";
 import {
@@ -25,6 +29,8 @@ export type InteractionHandlerDeps = {
   idempotency: InteractionIdempotency;
   /** When set, skip CP and webhook follow-up (unit tests). */
   deferOnly?: boolean;
+  /** Injectable fetch for webhook edits (tests). */
+  fetchImpl?: typeof fetch;
 };
 
 export type HandleInteractionResult =
@@ -119,7 +125,16 @@ async function runDeferredCommand(
   }
   const mode = sub as FanQueryMode;
   const userId = userIdFromInteraction(body) ?? "unknown";
-  await deps.cp.fanQuery({
+  const token = body.token?.trim();
+  const applicationId = deps.config.discordApplicationId.trim();
+  if (!token || !applicationId) {
+    return;
+  }
+
+  // Do not use discord.js deferReply()+followUp() here: followUp can edit the
+  // original ephemeral instead of posting a new message (SPEC §11).
+
+  const result = await deps.cp.fanQuery({
     guildId,
     discordUserId: userId,
     interactionId: body.id ?? "",
@@ -127,5 +142,31 @@ async function runDeferredCommand(
     query,
     memberRoleIds: memberRoleIds(body),
   });
-  // Webhook PATCH to edit thinking message — §22.5
+
+  let payload: WebhookMessagePayload;
+  if (!result.ok) {
+    payload = {
+      content: clipText(fanQueryErrorMessage(result), MESSAGE_CONTENT_MAX),
+      allowed_mentions: { parse: [] },
+    };
+  } else if (result.status === 202) {
+    payload = {
+      content: "Ember is working on your answer…",
+      allowed_mentions: { parse: [] },
+    };
+  } else {
+    payload = formatFanQueryResponse(mode, result.body, {
+      archiveWatchHost: deps.config.archiveWatchHost,
+    });
+  }
+
+  const edited = await editOriginalInteractionMessage({
+    applicationId,
+    token,
+    payload,
+    fetchImpl: deps.fetchImpl,
+  });
+  if (!edited) {
+    console.error("interaction_webhook_edit_failed", { interactionId: body.id, mode });
+  }
 }
