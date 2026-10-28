@@ -1,6 +1,6 @@
 import http from "node:http";
 
-import { describe, expect, it, afterEach } from "vitest";
+import { describe, expect, it, afterEach, vi } from "vitest";
 
 import { createConfig } from "../src/config.js";
 import { StubControlPlaneClient } from "../src/cp/client.js";
@@ -61,9 +61,12 @@ describe("POST /interactions", () => {
     server?.close();
   });
 
+  const mockFetch = vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 200 }));
+
   function startServer(deferOnly = false): void {
     stub = new StubControlPlaneClient();
-    server = createHttpServer({ config, cp: stub, deferOnly });
+    mockFetch.mockClear();
+    server = createHttpServer({ config, cp: stub, deferOnly, fetchImpl: mockFetch });
     server.listen(0);
   }
 

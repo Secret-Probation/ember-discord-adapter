@@ -21,7 +21,7 @@ const STATUS_FALLBACK_COPY: Partial<Record<number, string>> = {
   429: CP_ERROR_COPY.public_daily_ask_cap,
 };
 
-const GENERIC_ERROR =
+export const FAN_QUERY_GENERIC_ERROR =
   "Something went wrong while reaching Ember. Try again in a moment.";
 
 /** Resolve user-visible ephemeral text for a failed fan-query result. */
@@ -34,5 +34,5 @@ export function fanQueryErrorMessage(result: Extract<FanQueryResult, { ok: false
   if (byStatus) {
     return byStatus;
   }
-  return GENERIC_ERROR;
+  return FAN_QUERY_GENERIC_ERROR;
 }

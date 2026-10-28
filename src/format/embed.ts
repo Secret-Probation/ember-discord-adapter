@@ -11,6 +11,7 @@ import type { FanQueryMode } from "../cp/client.js";
 import type { DiscordActionRow, DiscordEmbed, WebhookMessagePayload } from "../discord/webhook.js";
 
 const EMBED_DESCRIPTION_MAX = 4096;
+const EMBED_TITLE_MAX = 256;
 const EMBED_COMBINED_MAX = 6000;
 const MAX_SEARCH_MOMENTS = 5;
 const MAX_ASK_CITATIONS = 3;
@@ -253,7 +254,7 @@ function buildAboutPayload(body: unknown): WebhookMessagePayload {
 
   const description = clipText(`${askLine}${archiveLine}`, EMBED_DESCRIPTION_MAX);
   const embed: DiscordEmbed = {
-    title: showName,
+    title: clipText(showName, EMBED_TITLE_MAX),
     description,
     footer: baseFooter(),
   };
@@ -271,10 +272,14 @@ function trimToCaps(payload: WebhookMessagePayload): WebhookMessagePayload {
   }
 
   let working = embeds.map((e) => ({ ...e, fields: e.fields ? [...e.fields] : undefined }));
+  let components = payload.components ? [...payload.components] : undefined;
   while (working.length > 0 && totalEmbedText(working) > EMBED_COMBINED_MAX) {
     const last = working[working.length - 1];
     if (last?.fields && last.fields.length > 0) {
       last.fields.pop();
+      if (components && components.length > 0) {
+        components.pop();
+      }
       continue;
     }
     working.pop();
@@ -287,7 +292,11 @@ function trimToCaps(payload: WebhookMessagePayload): WebhookMessagePayload {
     };
   }
 
-  return { ...payload, embeds: working };
+  return {
+    ...payload,
+    embeds: working,
+    components: components && components.length > 0 ? components : undefined,
+  };
 }
 
 /** Build webhook payload for a successful sync fan-query body. */

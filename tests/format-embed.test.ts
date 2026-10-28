@@ -23,6 +23,62 @@ describe("fanQueryErrorMessage", () => {
         message: "x",
       }),
     ).toBe(CP_ERROR_COPY.creator_credits_exhausted);
+
+    expect(
+      fanQueryErrorMessage({
+        ok: false,
+        status: 403,
+        code: "discord_ask_role_required",
+        message: "x",
+      }),
+    ).toBe(CP_ERROR_COPY.discord_ask_role_required);
+
+    expect(
+      fanQueryErrorMessage({
+        ok: false,
+        status: 403,
+        code: "ember_not_entitled",
+        message: "x",
+      }),
+    ).toBe(CP_ERROR_COPY.ember_not_entitled);
+
+    expect(
+      fanQueryErrorMessage({
+        ok: false,
+        status: 429,
+        code: "public_daily_ask_cap",
+        message: "x",
+      }),
+    ).toBe(CP_ERROR_COPY.public_daily_ask_cap);
+  });
+
+  it("falls back to HTTP status when code is unknown", () => {
+    expect(
+      fanQueryErrorMessage({
+        ok: false,
+        status: 403,
+        code: "unknown",
+        message: "x",
+      }),
+    ).toBe("Ember can't complete that request in this server.");
+
+    expect(
+      fanQueryErrorMessage({
+        ok: false,
+        status: 429,
+        code: "unknown",
+        message: "x",
+      }),
+    ).toBe(CP_ERROR_COPY.public_daily_ask_cap);
+
+    expect(
+      fanQueryErrorMessage({
+        ok: false,
+        status: 404,
+        code: "unknown",
+        message: "x",
+      }),
+    ).toBe(CP_ERROR_COPY.discord_not_linked);
   });
 });
 
@@ -73,10 +129,13 @@ describe("formatFanQueryResponse search", () => {
       speaker: "Host",
       playback_start_seconds: i,
       snippet: "x".repeat(EMBED_FIELD_MAX),
+      watch_url: "https://www.youtube.com/watch?v=abc",
     }));
     const payload = formatFanQueryResponse("search", { search: { hits } });
     const count = combinedEmbedCharCount(payload.embeds ?? []);
     expect(count).toBeLessThanOrEqual(6000);
+    const fieldCount = payload.embeds?.[0]?.fields?.length ?? 0;
+    expect(payload.components?.length ?? 0).toBeLessThanOrEqual(fieldCount);
   });
 });
 
@@ -104,7 +163,17 @@ describe("formatFanQueryResponse about", () => {
       archive_url: "https://example.com/archive/token",
     });
     expect(payload.embeds?.[0]?.title).toBe("Star Wars Time Show");
+    expect((payload.embeds?.[0]?.title ?? "").length).toBeLessThanOrEqual(256);
     expect(payload.embeds?.[0]?.description).toContain("Ask is available");
     expect(payload.embeds?.[0]?.description).toContain("https://example.com/archive/token");
+  });
+
+  it("clips long show titles to Discord embed title limit", () => {
+    const payload = formatFanQueryResponse("about", {
+      show_name: "S".repeat(300),
+      ask_available: true,
+    });
+    expect(payload.embeds?.[0]?.title?.length).toBeLessThanOrEqual(256);
+    expect(payload.embeds?.[0]?.title?.endsWith("…")).toBe(true);
   });
 });

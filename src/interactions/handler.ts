@@ -1,6 +1,6 @@
 import type { AdapterConfig } from "../config.js";
 import type { ControlPlaneClient, FanQueryMode } from "../cp/client.js";
-import { fanQueryErrorMessage } from "../cp/error-map.js";
+import { FAN_QUERY_GENERIC_ERROR, fanQueryErrorMessage } from "../cp/error-map.js";
 import { editOriginalInteractionMessage, type WebhookMessagePayload } from "../discord/webhook.js";
 import { deferredEphemeralBody, pongResponseBody } from "../discord/verify.js";
 import { formatFanQueryResponse } from "../format/embed.js";
@@ -97,9 +97,7 @@ export function createInteractionHandler(deps: InteractionHandlerDeps) {
       return { status: 200, headers: jsonHeaders, body: deferredEphemeralBody(), callCp: false };
     }
 
-    void runDeferredCommand(deps, input.parsed, guildId).catch((err) => {
-      console.error("deferred_command_failed", err);
-    });
+    void runDeferredCommand(deps, input.parsed, guildId);
 
     return { status: 200, headers: jsonHeaders, body: deferredEphemeralBody(), callCp: true };
   };
@@ -134,30 +132,38 @@ async function runDeferredCommand(
   // Do not use discord.js deferReply()+followUp() here: followUp can edit the
   // original ephemeral instead of posting a new message (SPEC §11).
 
-  const result = await deps.cp.fanQuery({
-    guildId,
-    discordUserId: userId,
-    interactionId: body.id ?? "",
-    mode,
-    query,
-    memberRoleIds: memberRoleIds(body),
-  });
-
   let payload: WebhookMessagePayload;
-  if (!result.ok) {
-    payload = {
-      content: clipText(fanQueryErrorMessage(result), MESSAGE_CONTENT_MAX),
-      allowed_mentions: { parse: [] },
-    };
-  } else if (result.status === 202) {
-    payload = {
-      content: "Ember is working on your answer…",
-      allowed_mentions: { parse: [] },
-    };
-  } else {
-    payload = formatFanQueryResponse(mode, result.body, {
-      archiveWatchHost: deps.config.archiveWatchHost,
+  try {
+    const result = await deps.cp.fanQuery({
+      guildId,
+      discordUserId: userId,
+      interactionId: body.id ?? "",
+      mode,
+      query,
+      memberRoleIds: memberRoleIds(body),
     });
+
+    if (!result.ok) {
+      payload = {
+        content: clipText(fanQueryErrorMessage(result), MESSAGE_CONTENT_MAX),
+        allowed_mentions: { parse: [] },
+      };
+    } else if (result.status === 202) {
+      payload = {
+        content: "Ember is working on your answer…",
+        allowed_mentions: { parse: [] },
+      };
+    } else {
+      payload = formatFanQueryResponse(mode, result.body, {
+        archiveWatchHost: deps.config.archiveWatchHost,
+      });
+    }
+  } catch (err) {
+    console.error("deferred_command_failed", err);
+    payload = {
+      content: clipText(FAN_QUERY_GENERIC_ERROR, MESSAGE_CONTENT_MAX),
+      allowed_mentions: { parse: [] },
+    };
   }
 
   const edited = await editOriginalInteractionMessage({
