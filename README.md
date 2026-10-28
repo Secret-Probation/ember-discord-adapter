@@ -9,7 +9,8 @@ Official **Ember Discord adapter service** — HTTP Interactions, OAuth install,
 | **ember-discord-adapter** | Discord protocol, defer/edit, embeds, bot token |
 | [Ember](https://github.com/Secret-Probation/Ember) | Search / Ask engine (unchanged) |
 
-**Spec:** [docs/SPEC.md](docs/SPEC.md) (accepted 2026-10-28)
+**Spec:** [docs/SPEC.md](docs/SPEC.md) (accepted 2026-10-28)  
+**Multi-agent PR plan:** [docs/BUILD_PHASES.md](docs/BUILD_PHASES.md) · **PR briefs:** [docs/pr/README.md](docs/pr/README.md)
 
 ## Development
 

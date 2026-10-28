@@ -489,11 +489,13 @@ A change after accept amends this spec first.
 
 ## 22. Build order (after accept only)
 
+**Multi-agent PR plan:** [BUILD_PHASES.md](./BUILD_PHASES.md) · **One PR per agent:** [docs/pr/README.md](./pr/README.md)
+
 1. ~~Create `Secret-Probation/ember-discord-adapter` with this spec as `docs/SPEC.md`.~~ Done. Voxen pointer: [EMBER_DISCORD_POINTER.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/EMBER_DISCORD_POINTER.md).
-2. Interactions server: verify, PING, deferred ack, rate ceiling, formatter tests. Control-plane client stubbed.
-3. Control plane: `EMBER_DISCORD_ENABLED`, binding schema (`ask_role_id`, leave outbox), `consumeFanAskDailySlot`, internal fan-query/poll/share, `fixedQueryId` + `discord_guild` origin, meter `surface`, show API + Connect UI.
-4. OAuth callback, pending binding, Clerk confirm.
-5. Live search, then Ask with defer, internal poll, and credit idempotency.
-6. Post to channel, Ask role picker, guild cap, rollups, adapter smoke script, Prometheus hooks.
+2. ~~Interactions server (AD-1):~~ verify, PING, deferred ack, rate ceiling, stub CP — **merged**. Remaining adapter work: **AD-2…AD-7** in `docs/pr/`.
+3. Control plane: **CP-1…CP-8** in `docs/pr/` (schema, cap, fan-query, install UI, rollups).
+4. OAuth + confirm: **AD-4**, **CP-7**, **CP-8**.
+5. Live search/ask: **CP-4**, **CP-5**, **AD-2**, **AD-3**.
+6. Post-to-channel, metrics, deploy: **CP-6**, **AD-6**, **AD-7**.
 
 Pilot on the SWTS show after the public archive path is already on. The interactions URL is the adapter’s public hostname.
