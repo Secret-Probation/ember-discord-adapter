@@ -9,7 +9,7 @@
 
 ## How to run multiple agents
 
-1. Pick PRs whose **Depends on** rows are already **merged** (see [pr/README.md](./pr/README.md)).
+1. Pick PRs whose **Depends on** column is satisfied (all listed IDs **merged** — see [pr/README.md](./pr/README.md)).
 2. Assign **exactly one PR** per agent. Branch name and repo are in the PR brief.
 3. Agent reads **`docs/pr/{ID}.md`** + relevant **SPEC.md** sections cited there.
 4. Agent opens PR with title from brief; links `docs/pr/{ID}.md` in description.
@@ -107,7 +107,7 @@ flowchart LR
 | 1 | CP-1, CP-2, CP-3, AD-2 | Schema, router, cap, webhook formatter |
 | 2 | CP-4, CP-5, AD-3 | Fan-query + poll + adapter loop |
 | 3 | CP-7, AD-4, AD-5, CP-8 | Install, OAuth, UI |
-| 4 | CP-6, AD-6, AD-7, CP-8b | Rollups, post-to-channel, deploy |
+| 4 | CP-6, AD-6, AD-7, CP-8b, CP-9? | Rollups, post-to-channel, deploy, hybrid compose |
 | 5 | Ops | Legal, Discord portal, `.206`, SWTS pilot (not single PR) |
 
 ---
@@ -117,10 +117,13 @@ flowchart LR
 | Gate | Requires merged | Proof |
 |------|-----------------|--------|
 | **G1** | CP-1 | Migration + bearer tests green |
-| **G2** | CP-1..5, AD-2, AD-3 | `/ember search` + ask in test guild (staging) |
+| **G2a (dev)** | CP-1..5, AD-2, AD-3 | Integration tests + **seeded active binding** fixture; adapter/CP fan-query returns formatted ephemeral in CI or local compose (no real Discord guild required) |
+| **G2b (staging)** | G2a + **G3** | Real `/ember search` + ask in a test guild after install + confirm |
 | **G3** | CP-7, CP-8, AD-4, AD-5 | Owner connect + confirm + `/ember about` |
-| **G4** | All through AD-7, CP-6 | Post-to-channel + smoke script on `.206` |
-| **Pilot** | G3 + G4 + Phase 5 ops | SWTS design partner |
+| **G4** | G2a, CP-6, AD-6, AD-7 | Post-to-channel + smoke script; optional **CP-9** on `.206` |
+| **Pilot** | G2b + G4 + Phase 5 ops | SWTS design partner |
+
+Do not treat **G2b** as reachable with CP-1..5 alone — live guild binding requires **G3** (or manual prod install).
 
 ---
 
@@ -131,14 +134,24 @@ CP-1 → CP-2 ─┐
 CP-1 → CP-3 ─┼→ CP-4 → CP-5 → AD-3
                └→ (AD-2 in parallel from start)
 
-CP-1 → CP-7 → AD-4
+CP-1 → CP-7 → AD-4          (CP-7 may start right after CP-1, parallel to CP-2/3/4 chain)
 CP-1 → AD-5 → CP-8
 
 CP-4 → CP-6 → AD-6
 AD-2 → AD-7
 ```
 
-**Max parallel agents (steady state): 3** — e.g. after CP-1: **CP-2** + **CP-3** + **AD-2**.
+**Max parallel agents (steady state): 3–4** — e.g. after CP-1: **CP-2** + **CP-3** + **CP-7** + **AD-2** (CP-7 only needs CP-1; does not wait for CP-4).
+
+---
+
+## PR sizing (split only if slipping)
+
+| PR | Size | Split trigger |
+|----|------|----------------|
+| CP-4 | Large | **CP-4a** sync search/about + **CP-4b** ask/202 if review > ~800 LOC |
+| CP-7 | Large | Keep single PR if possible; outbox cron can be follow-up commit on same branch |
+| AD-2 | Medium–large | OK as one PR |
 
 ---
 
@@ -149,6 +162,8 @@ AD-2 → AD-7
 3. **Internal API:** not on public vhost; document in CP PR if nginx/docker touched.
 4. **Titles:** `feat(discord-cp): …` or `feat(discord): …`.
 5. **Completion:** mark PR merged in [pr/README.md](./pr/README.md).
+6. **CP-only PRs:** if routes match SPEC §7 already, PR body must say *SPEC §7 unchanged — implementation only*; if adding/changing routes, open an **adapter-repo** docs PR updating `SPEC.md` in the same merge window (or include spec commit in orchestrator batch).
+7. **§19 tests:** use the **§19 test ownership** table in [CP-4.md](./pr/CP-4.md) and [CP-6.md](./pr/CP-6.md); do not implement cited rollups in CP-4.
 
 ---
 

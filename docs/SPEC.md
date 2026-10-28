@@ -100,7 +100,7 @@ Scopes: `bot` and `applications.commands` only. Do not request `identify` or `em
 The adapter host has no Clerk cookie. A stolen state nonce must not activate a binding.
 
 1. Owner or Admin calls `POST /api/shows/{projectId}/discord/install` (Clerk). Control plane mints a single-use `state`, 10 minutes, bound to that Clerk user and `project_id`. Response: `{ "state": "<nonce>", "oauth_start_url": "https://<adapter-host>/oauth/start?state=<nonce>" }`. Requires `EMBER_DISCORD_ENABLED` and entitlement; enforces guild cap before minting.
-2. Browser opens `oauth_start_url`. Adapter `GET /oauth/start` accepts only a known, unused, unexpired state and redirects to `https://discord.com/oauth2/authorize` with the exact registered redirect URI. Unknown or expired state → **400**, no redirect to Discord.
+2. Browser opens `oauth_start_url`. Adapter `GET /oauth/start` calls control plane `GET /api/internal/discord/oauth/state/{state}` (service bearer). **200** only when the row exists, is unused, and is unexpired; then redirect to `https://discord.com/oauth2/authorize` with the exact registered redirect URI. Any other case → **400**, no redirect to Discord. The adapter does not cache OAuth state locally in v1.
 3. Callback exchanges the code. The adapter fetches the guild name with the bot token, then `POST`s `{ state, guild_id, guild_name, permissions }` to the control plane. The control plane marks the state used and stores a **pending** row. It does not activate. The bot token never leaves the adapter.
 4. The browser is sent to one fixed control-plane confirm URL. That page requires the same Clerk user. Confirm activates. Reject deletes the pending row.
 5. Reused, expired, or unknown state is **400**. Denying Discord’s screen creates nothing.
@@ -128,6 +128,7 @@ Client-supplied `project_id`, `force_agentic`, collection, and `job_ids` are **r
 | Call | Auth | Effect |
 |------|------|--------|
 | `POST /api/shows/{projectId}/discord/install` | Clerk, Owner or Admin | Mint OAuth `state`; return `oauth_start_url` (§6) |
+| `GET /api/internal/discord/oauth/state/{state}` | service bearer | Pre-flight for `/oauth/start`: valid unused state → **200** `{ "valid": true }`; else **404** |
 | `POST /api/internal/discord/bindings` | service bearer | Pending row from OAuth. Does not activate |
 | `POST /api/shows/{projectId}/discord/confirm` | Clerk, Owner or Admin, same user as the state | Activate or reject pending |
 | `GET /api/shows/{projectId}/discord` | Clerk, can view show | Active/pending status, guild name, `ask_role_id`, cap hint |
@@ -422,6 +423,8 @@ Rotating the bot token is a portal reset, an adapter restart, and one deliberate
 ---
 
 ## 19. Tests
+
+**PR ownership:** fan-query core → **CP-4**; cited/share rollups → **CP-6** only. See [docs/pr/CP-4.md](./pr/CP-4.md) and [docs/pr/CP-6.md](./pr/CP-6.md).
 
 Adapter, with the control-plane client stubbed:
 

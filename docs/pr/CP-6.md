@@ -19,6 +19,17 @@ Hook cited increments from fan-query success path (shared helper called from CP-
 - [ ] Share: requires `job_id`, optional playback/speaker; rejects question text / discord_user_id.
 - [ ] Rollups GET: no fan identity; episode titles from catalog at read time.
 
+## SPEC §19 test ownership
+
+| §19 CP bullet | Owner |
+|---------------|--------|
+| Cited rows per distinct `job_id`, no timestamp/speaker on cited | **CP-6** |
+| Share body rejects PII; stored share row has no `interaction_id` | **CP-6** |
+| Rollup read returns no fan identity | **CP-6** |
+| Fan-query integration **without** rollup side effects | **CP-4** |
+
+Wire cited increments from the fan-query success path (helper in this PR; call from handler invoked by CP-4 route after CP-6 merges, or include handler hook in CP-6 that patches call site on `main`).
+
 ## Test plan
 
-- [ ] §19 rollup bullets.
+- [ ] §19 rollup bullets only (not fan-query core — see CP-4).

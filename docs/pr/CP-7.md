@@ -11,7 +11,12 @@
 
 ## Task prompt
 
-Clerk routes: `POST …/discord/install`, `POST …/confirm`, `GET/PATCH/DELETE …/discord`. Internal `POST …/discord/bindings` (service bearer). Enforce Owner/Admin, guild cap `DISCORD_GUILD_CAP`, one guild / one show conflicts. Unlink → delete binding + insert leave outbox + call adapter leave (adapter may 503 — outbox retry). `GET …/discord/roles` proxies to adapter when binding active (adapter URL + internal token from env). Audit log fields per §6.
+Clerk routes: `POST …/discord/install`, `POST …/confirm`, `GET/PATCH/DELETE …/discord`. Internal:
+
+- `GET /api/internal/discord/oauth/state/{state}` — valid unused unexpired row → **200** `{ "valid": true }`; else **404** (§6 step 2, AD-4).
+- `POST …/discord/bindings` (service bearer).
+
+Enforce Owner/Admin, guild cap `DISCORD_GUILD_CAP`, one guild / one show conflicts. Unlink → delete binding + insert leave outbox + call adapter leave (adapter may 503 — outbox retry). `GET …/discord/roles` proxies to adapter when binding active; if adapter unreachable → **503** with retry message (§7.2). Audit log fields per §6.
 
 ## Likely touchpoints
 
@@ -33,6 +38,8 @@ Clerk routes: `POST …/discord/install`, `POST …/confirm`, `GET/PATCH/DELETE 
 - [ ] Pending does not answer fan-query (CP-4 integration).
 - [ ] DELETE is Clerk-only on show route.
 - [ ] Leave outbox retry documented.
+- [ ] `GET …/oauth/state/{state}`: unused valid → 200; used/expired/missing → 404; wrong bearer → 401.
+- [ ] `GET …/discord/roles`: adapter down → **503** (not 500 with stack trace).
 
 ## Test plan
 

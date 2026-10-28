@@ -26,8 +26,17 @@ Implement `POST /api/internal/discord/fan-query` exactly per **§7.1** (all 12 s
 ## Out of scope
 
 - Poll route (CP-5).
-- Share rollups (CP-6) unless small cited increment included.
+- **All §14 rollup writes** (cited + share) — **CP-6 only**. No cited increments in this PR.
 - Creator UI.
+
+## SPEC §19 test ownership
+
+| §19 CP bullet | Owner |
+|---------------|--------|
+| Fan-query integration, idempotency, flag off, wrong bearer, `fixedQueryId` rejected on staff/public | **CP-4** |
+| Queued Ask `ask_job_id` only | **CP-4** (poll auth → **CP-5**) |
+| **Cited rollups on search** | **CP-6 only** — do not implement in CP-4 |
+| Share / rollup read / no fan identity on rollups | **CP-6** |
 
 ## Acceptance checklist
 
@@ -41,5 +50,6 @@ Implement `POST /api/internal/discord/fan-query` exactly per **§7.1** (all 12 s
 
 ## Test plan
 
-- [ ] All applicable §19 CP bullets for fan-query.
+- [ ] All applicable §19 CP bullets for fan-query (**not** cited rollups — CP-6).
+- [ ] Integration tests use a **seeded active binding** row in Postgres (test fixture) so fan-query runs without CP-7/AD-4 (supports merge gate **G2a**).
 - [ ] Confirm `/api/internal/discord/*` not in public nginx config (document in PR).

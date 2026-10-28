@@ -24,7 +24,7 @@ After deferred ack, implement Discord **interaction webhook** client: `PATCH /we
 ## Out of scope
 
 - Ask poll loop (AD-3).
-- Post-to-channel button (AD-6).
+- Post-to-channel button and **`MESSAGE_COMPONENT`** handling (AD-6).
 - OAuth (AD-4).
 
 ## Acceptance checklist
