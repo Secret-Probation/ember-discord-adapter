@@ -3,7 +3,7 @@
 **Normative behavior:** [SPEC.md](./SPEC.md)  
 **Per-PR agent briefs:** [docs/pr/README.md](./pr/README.md) (one file per PR — **give that file to each agent**)
 
-**Status (2026-10-28):** Phase 0 + **AD-1**, **AD-2**, **CP-1** merged. Wave 2 (CP-2, CP-3, CP-7, AD-5) in flight; remaining PRs **open**.
+**Status (2026-10-28):** **AD-1/2**, **AD-5**, **CP-1..3**, **CP-7** merged. **CP-4** in flight; remaining PRs **open**.
 
 ---
 
