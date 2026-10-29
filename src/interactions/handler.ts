@@ -25,6 +25,7 @@ import {
   INTERACTION_MESSAGE_COMPONENT,
   INTERACTION_PING,
   guildIdFromInteraction,
+  hasGuildInstallContext,
   memberRoleIds,
   subcommandAndQuery,
   userIdFromInteraction,
@@ -85,8 +86,7 @@ export function createInteractionHandler(deps: InteractionHandlerDeps) {
 
     const handlerStarted = Date.now();
 
-    const guildId = guildIdFromInteraction(input.parsed);
-    if (!guildId) {
+    if (!hasGuildInstallContext(input.parsed)) {
       return {
         status: 200,
         headers: jsonHeaders,
@@ -96,6 +96,11 @@ export function createInteractionHandler(deps: InteractionHandlerDeps) {
         }),
         callCp: false,
       };
+    }
+
+    const guildId = guildIdFromInteraction(input.parsed);
+    if (!guildId) {
+      return ephemeralMessage("Ember only works in servers.");
     }
 
     const processCap = deps.processLimiter.consume();
@@ -165,6 +170,10 @@ function handleMessageComponent(
   deps: InteractionHandlerDeps,
   body: InteractionPayload,
 ): HandleInteractionResult {
+  if (!hasGuildInstallContext(body)) {
+    return ephemeralMessage("Ember only works in servers.");
+  }
+
   const guildId = guildIdFromInteraction(body);
   if (!guildId) {
     return ephemeralMessage("Ember only works in servers.");

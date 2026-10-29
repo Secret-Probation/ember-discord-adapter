@@ -1,6 +1,6 @@
 # SPEC — Ember Discord adapter
 
-**Status:** Accepted (2026-10-28) — no implementation yet (§20).  
+**Status:** Accepted (2026-10-28) — v1 implemented for design partner (§20).  
 **Normative home:** this file (`Secret-Probation/ember-discord-adapter`). Voxen carries a pointer only: [SPEC-EMBER-DISCORD.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/specs/SPEC-EMBER-DISCORD.md).  
 **Parents (Voxen):** [SPEC-EMBER-PUBLIC-ARCHIVE-LINK.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/specs/SPEC-EMBER-PUBLIC-ARCHIVE-LINK.md) · [SPEC-EMBER-ASK-OUTPUT-CONTRACT.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/specs/SPEC-EMBER-ASK-OUTPUT-CONTRACT.md) · [V1_ARCHITECTURE_LOCKED.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/V1_ARCHITECTURE_LOCKED.md)  
 **Discord policy:** [Developer Policy](https://support-dev.discord.com/hc/en-us/articles/8563934450327-Discord-Developer-Policy) (effective 2024-07-08) · [Developer Terms](https://support-dev.discord.com/hc/en-us/articles/8562894815383-Discord-Developer-Terms-of-Service). Re-read both before the first install.
