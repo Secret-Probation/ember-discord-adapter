@@ -1,0 +1,33 @@
+# Example sidecar on control-plane host (.206) — SPEC §4, AD-7.
+# Min replicas: 1 (no scale-to-zero). Edge vhost forwards public HTTPS to PORT.
+# Pilot interactions URL (placeholder): https://discord.dev.doublesecretprobationstudios.com/interactions
+#
+# Host: controlplane (192.168.0.206) — /opt/voxen/secret-probation or adapter checkout
+services:
+  ember-discord-adapter:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: ember-discord-adapter:local
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      PORT: "8787"
+      PUBLIC_HOST: "0.0.0.0"
+      INTERNAL_HOST: "0.0.0.0"
+      INTERNAL_PORT: "8788"
+      EMBER_DISCORD_CP_BASE_URL: "http://web:3000"
+    ports:
+      # Bind on docker network / localhost only; public traffic arrives via edge TLS vhost.
+      - "127.0.0.1:8787:8787"
+      - "127.0.0.1:8788:8788"
+    networks:
+      - sp_internal
+    deploy:
+      replicas: 1
+
+networks:
+  sp_internal:
+    external: true
+    name: secret-probation_default

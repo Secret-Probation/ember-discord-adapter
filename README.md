@@ -31,6 +31,38 @@ EMBER_DISCORD_CP_STUB=1 DISCORD_PUBLIC_KEY=… DISCORD_APPLICATION_ID=… npm ru
 
 The public listener returns **404** for `/internal/*`. Only the internal bind address (docker network on `.206`) should reach CP→adapter routes. Auth: `Authorization: Bearer` = `EMBER_DISCORD_ADAPTER_INTERNAL_TOKEN`. Discord API calls use `DISCORD_BOT_TOKEN` on the adapter only.
 
+### Pilot hostname (SPEC §4)
+
+Public HTTPS (edge vhost → adapter `PORT`):
+
+`https://discord.dev.doublesecretprobationstudios.com/interactions` · OAuth callback `/oauth/callback` on the same host.
+
+Keep **min replicas = 1** on the interactions service (no scale-to-zero).
+
+### Deploy
+
+```bash
+docker build -t ember-discord-adapter:local .
+# Example compose sidecar on .206: deploy/docker-compose.example.yml
+```
+
+Register slash commands **after** deploy (never on container boot):
+
+```bash
+DISCORD_APPLICATION_ID=… DISCORD_BOT_TOKEN=… npm run register
+```
+
+Post-deploy smoke (`DISCORD_PUBLIC_KEY` must match [tests/helpers/discord-sign.ts](tests/helpers/discord-sign.ts) for automated signing, or run against stub):
+
+```bash
+chmod +x scripts/discord_adapter_smoke.sh
+ADAPTER_BASE_URL=http://127.0.0.1:8787 DISCORD_PUBLIC_KEY=<test-public-key> ./scripts/discord_adapter_smoke.sh
+```
+
+Prometheus metrics: `GET http://<internal-host>:8788/metrics` (docker network only).
+
+SIGTERM: process stops accepting new requests, waits up to **20 seconds** for in-flight webhook edits, then exits (`src/index.ts`).
+
 ## Hosts
 
 | Host | Role |

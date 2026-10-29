@@ -9,7 +9,12 @@ import {
   parsePostCustomId,
 } from "../format/embed.js";
 import { clipText, MESSAGE_CONTENT_MAX } from "../format/sanitize.js";
-import { recordPostToChannel } from "../observability/metrics.js";
+import {
+  commandsTotal,
+  deferLatencySeconds,
+  fanQueryLatencySeconds,
+  recordPostToChannel,
+} from "../observability/metrics.js";
 import type { FixedWindowBucket, GuildRateLimiter, ProcessRpsLimiter } from "../rate-limit/buckets.js";
 import { runAskPollLoop } from "./ask-poll-loop.js";
 import { InteractionIdempotency } from "./idempotency.js";
@@ -78,6 +83,8 @@ export function createInteractionHandler(deps: InteractionHandlerDeps) {
       return { status: 400, headers: jsonHeaders, body: JSON.stringify({ error: "unsupported_type" }), callCp: false };
     }
 
+    const handlerStarted = Date.now();
+
     const guildId = guildIdFromInteraction(input.parsed);
     if (!guildId) {
       return {
@@ -109,6 +116,13 @@ export function createInteractionHandler(deps: InteractionHandlerDeps) {
     if (!deps.idempotency.claim(interactionId)) {
       return ephemeralMessage("Already handling this command.");
     }
+
+    const { sub } = subcommandAndQuery(input.parsed);
+    if (sub === "search" || sub === "ask" || sub === "about") {
+      commandsTotal.inc({ mode: sub });
+    }
+
+    deferLatencySeconds.observe({}, (Date.now() - handlerStarted) / 1000);
 
     if (deps.deferOnly) {
       return { status: 200, headers: jsonHeaders, body: deferredEphemeralBody(), callCp: false };
@@ -247,6 +261,7 @@ async function runDeferredCommand(
 
   let payload: WebhookMessagePayload;
   try {
+    const fanQueryStarted = Date.now();
     const result = await deps.cp.fanQuery({
       guildId,
       discordUserId: userId,
@@ -255,6 +270,7 @@ async function runDeferredCommand(
       query,
       memberRoleIds: memberRoleIds(body),
     });
+    fanQueryLatencySeconds.observe({ mode }, (Date.now() - fanQueryStarted) / 1000);
 
     if (!result.ok) {
       payload = {

@@ -28,6 +28,7 @@ internalServer.listen(config.internalPort, config.internalHost, () => {
 
 let shuttingDown = false;
 
+/** SIGTERM/SIGINT: stop accepting, then wait `shutdownGraceMs` (20s, SPEC §11) before closing servers. */
 function shutdown(signal: string): void {
   if (shuttingDown) {
     return;

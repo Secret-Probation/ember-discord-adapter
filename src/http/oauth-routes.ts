@@ -4,6 +4,7 @@ import type { AdapterConfig } from "../config.js";
 import type { ControlPlaneClient } from "../cp/client.js";
 import type { DiscordBotRest } from "../discord/bot-rest.js";
 import { buildDiscordAuthorizeUrl, exchangeOAuthCode } from "../discord/oauth.js";
+import { guildInstallTotal } from "../observability/metrics.js";
 import type { FixedWindowBucket } from "../rate-limit/buckets.js";
 
 export type OAuthRouteDeps = {
@@ -156,6 +157,8 @@ export async function handleOAuthCallback(
     badRequest(res, binding.message);
     return;
   }
+
+  guildInstallTotal.inc();
 
   res.writeHead(302, { Location: deps.config.discordOAuthConfirmUrl });
   res.end();
