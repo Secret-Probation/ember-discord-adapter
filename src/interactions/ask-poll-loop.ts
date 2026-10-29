@@ -4,12 +4,14 @@ import type { ControlPlaneClient, FanQueryMode } from "../cp/client.js";
 import type { AdapterConfig } from "../config.js";
 import { FAN_QUERY_GENERIC_ERROR } from "../cp/error-map.js";
 import { editOriginalInteractionMessage, type WebhookMessagePayload } from "../discord/webhook.js";
-import { formatFanQueryResponse } from "../format/embed.js";
+import { finalizeFanQueryEphemeralPayload, formatFanQueryResponse } from "../format/embed.js";
 import { clipText, MESSAGE_CONTENT_MAX } from "../format/sanitize.js";
+import type { PostToChannelCache } from "./post-cache.js";
 
 export type AskPollLoopDeps = {
   config: AdapterConfig;
   cp: ControlPlaneClient;
+  postCache: PostToChannelCache;
   fetchImpl?: typeof fetch;
   nowMs?: () => number;
   sleepMs?: (ms: number) => Promise<void>;
@@ -69,6 +71,7 @@ export type RunAskPollLoopInput = {
   mode: FanQueryMode;
   guildId: string;
   interactionId: string;
+  invokerUserId: string;
   applicationId: string;
   token: string;
   askJobId: string;
@@ -136,9 +139,19 @@ export async function runAskPollLoop(input: RunAskPollLoopInput): Promise<void> 
     }
 
     if (pollResult.status === "completed") {
+      const formattedBody = askPollBodyForFormatter(pollResult.body);
+      const formatted = formatFanQueryResponse(input.mode, formattedBody, {
+        archiveWatchHost: input.deps.config.archiveWatchHost,
+      });
       await edit(
-        formatFanQueryResponse(input.mode, askPollBodyForFormatter(pollResult.body), {
-          archiveWatchHost: input.deps.config.archiveWatchHost,
+        finalizeFanQueryEphemeralPayload({
+          mode: input.mode,
+          body: formattedBody,
+          sourceInteractionId: input.interactionId,
+          invokerUserId: input.invokerUserId,
+          guildId: input.guildId,
+          formatted,
+          postCache: input.deps.postCache,
         }),
       );
       return;

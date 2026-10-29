@@ -7,6 +7,7 @@ import { verifyDiscordRequest } from "../discord/verify.js";
 import { handleInternalRoute } from "./internal-routes.js";
 import { createInteractionHandler } from "../interactions/handler.js";
 import { InteractionIdempotency } from "../interactions/idempotency.js";
+import { PostToChannelCache } from "../interactions/post-cache.js";
 import type { InteractionPayload } from "../interactions/types.js";
 import { handleOAuthCallback, handleOAuthStart } from "./oauth-routes.js";
 import {
@@ -34,6 +35,7 @@ export function createHttpServer(deps: HttpServerDeps): http.Server {
   const guildLimiter = new GuildRateLimiter(deps.config.guildLimitPerMin, deps.config.guildBurst);
   const processLimiter = new ProcessRpsLimiter(deps.config.processRps);
   const idempotency = new InteractionIdempotency(24 * 60 * 60 * 1000);
+  const postCache = new PostToChannelCache();
 
   const handleInteraction = createInteractionHandler({
     config: deps.config,
@@ -42,6 +44,7 @@ export function createHttpServer(deps: HttpServerDeps): http.Server {
     guildLimiter,
     processLimiter,
     idempotency,
+    postCache,
     deferOnly: deps.deferOnly,
     fetchImpl: deps.fetchImpl,
   });

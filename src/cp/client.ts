@@ -39,9 +39,20 @@ export type PendingBindingInput = {
 
 export type PendingBindingResult = { ok: true } | { ok: false; message: string };
 
+export type DiscordShareInput = {
+  guildId: string;
+  interactionId: string;
+  jobId: string;
+  playbackStartSeconds: number;
+  speaker?: string | null;
+};
+
+export type DiscordShareResult = { ok: true } | { ok: false; status: number; message: string };
+
 export interface ControlPlaneClient {
   fanQuery(input: FanQueryInput): Promise<FanQueryResult>;
   pollAskJob(input: AskPollInput): Promise<AskPollResult>;
+  recordDiscordShare(input: DiscordShareInput): Promise<DiscordShareResult>;
   validateOAuthState(state: string, fetchImpl?: typeof fetch): Promise<OAuthStateResult>;
   createPendingBinding(
     input: PendingBindingInput,
@@ -52,6 +63,7 @@ export interface ControlPlaneClient {
 export class StubControlPlaneClient implements ControlPlaneClient {
   readonly calls: FanQueryInput[] = [];
   readonly pollCalls: AskPollInput[] = [];
+  readonly shareCalls: DiscordShareInput[] = [];
   readonly oauthStateCalls: string[] = [];
   readonly bindingCalls: PendingBindingInput[] = [];
 
@@ -77,6 +89,11 @@ export class StubControlPlaneClient implements ControlPlaneClient {
       status: "completed",
       body: { ask: { answer: "stub poll", citations: [] } },
     };
+  }
+
+  async recordDiscordShare(input: DiscordShareInput): Promise<DiscordShareResult> {
+    this.shareCalls.push(input);
+    return { ok: true };
   }
 
   async validateOAuthState(state: string): Promise<OAuthStateResult> {
@@ -191,6 +208,43 @@ export class HttpControlPlaneClient implements ControlPlaneClient {
       };
     }
     return { ok: true, status: 200, body: json };
+  }
+
+  async recordDiscordShare(
+    input: DiscordShareInput,
+    fetchImpl: typeof fetch = fetch,
+  ): Promise<DiscordShareResult> {
+    const body: Record<string, string | number> = {
+      guild_id: input.guildId,
+      interaction_id: input.interactionId,
+      job_id: input.jobId,
+      playback_start_seconds: input.playbackStartSeconds,
+    };
+    if (input.speaker?.trim()) {
+      body.speaker = input.speaker.trim();
+    }
+
+    let res: Response;
+    try {
+      res = await fetchImpl(this.cpUrl("/api/internal/discord/share"), {
+        method: "POST",
+        headers: { ...this.authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      return { ok: false, status: 502, message: "Control plane unreachable" };
+    }
+
+    if (res.ok) {
+      return { ok: true };
+    }
+
+    const json = (await res.json().catch(() => ({}))) as { message?: string };
+    return {
+      ok: false,
+      status: res.status,
+      message: json.message ?? "Share rollup failed",
+    };
   }
 
   async pollAskJob(input: AskPollInput): Promise<AskPollResult> {

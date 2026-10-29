@@ -28,3 +28,31 @@ describe("HttpControlPlaneClient.pollAskJob", () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe("HttpControlPlaneClient.recordDiscordShare", () => {
+  it("POSTs share rollup body to internal discord share", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(new Response("", { status: 200 }));
+    const client = new HttpControlPlaneClient("https://cp.example", "secret-bearer");
+    const result = await client.recordDiscordShare(
+      {
+        guildId: "guild-9",
+        interactionId: "ix-1",
+        jobId: "job-1",
+        playbackStartSeconds: 90,
+        speaker: "Host",
+      },
+      fetchImpl,
+    );
+
+    expect(result).toEqual({ ok: true });
+    expect(String(fetchImpl.mock.calls[0]?.[0])).toBe("https://cp.example/api/internal/discord/share");
+    const body = JSON.parse(String(fetchImpl.mock.calls[0]?.[1]?.body));
+    expect(body).toEqual({
+      guild_id: "guild-9",
+      interaction_id: "ix-1",
+      job_id: "job-1",
+      playback_start_seconds: 90,
+      speaker: "Host",
+    });
+  });
+});

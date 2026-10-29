@@ -47,6 +47,15 @@ class Counter {
     }
     return lines.join("\n");
   }
+
+  /** Test-only helpers (AD-6 post-to-channel assertions). */
+  getValueForTests(): number {
+    return [...this.values.values()].reduce((a, b) => a + b, 0);
+  }
+
+  resetForTests(): void {
+    this.values.clear();
+  }
 }
 
 const DEFAULT_HISTOGRAM_BUCKETS = [
@@ -115,11 +124,6 @@ class Histogram {
   }
 }
 
-/** Increment when AD-6 posts a public channel message. */
-export function recordPostToChannel(): void {
-  postToChannelTotal.inc();
-}
-
 export const signatureVerifyTotal = new Counter(
   "ember_discord_signature_verify_total",
   "Discord interaction signature verification outcomes",
@@ -164,6 +168,11 @@ export const webhookResponseTotal = new Counter(
   "Discord interaction webhook HTTP responses by status class",
   ["status"],
 );
+
+/** Increment when AD-6 posts a public channel message. */
+export function recordPostToChannel(): void {
+  postToChannelTotal.inc();
+}
 
 /** Record webhook status; highlights 429 and 403 per SPEC §13. */
 export function recordWebhookHttpStatus(status: number): void {
