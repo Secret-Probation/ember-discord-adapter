@@ -18,7 +18,7 @@ describe("editOriginalInteractionMessage", () => {
       fetchImpl,
     });
 
-    expect(ok).toBe(true);
+    expect(ok.ok).toBe(true);
     expect(fetchImpl).toHaveBeenCalledTimes(4);
 
     const patchUrl =
@@ -46,7 +46,8 @@ describe("editOriginalInteractionMessage", () => {
       fetchImpl,
     });
 
-    expect(ok).toBe(false);
+    expect(ok.ok).toBe(false);
+    expect(ok.status).toBe(401);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });

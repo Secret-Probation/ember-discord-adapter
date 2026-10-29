@@ -203,6 +203,30 @@ describe("post to channel button", () => {
       ) ?? false;
     expect(publicHasPostButton).toBe(false);
   });
+
+  it("stays within Discord five action row cap with post button and five watch links", () => {
+    const hits = Array.from({ length: 5 }, (_, i) => ({
+      job_id: `job-${i}`,
+      episode_title: `Ep ${i}`,
+      speaker: "Host",
+      playback_start_seconds: i,
+      snippet: "snippet",
+      watch_url: "https://www.youtube.com/watch?v=abc",
+    }));
+    const body = { search: { hits } };
+    const formatted = formatFanQueryResponse("search", body);
+    const ephemeral = finalizeFanQueryEphemeralPayload({
+      mode: "search",
+      body,
+      sourceInteractionId: "9999999999999999999",
+      invokerUserId: "111",
+      guildId: "guild",
+      formatted,
+      postCache: new PostToChannelCache(),
+    });
+    expect(ephemeral.components?.length ?? 0).toBeLessThanOrEqual(5);
+    expect(ephemeral.components?.length).toBe(2);
+  });
 });
 
 describe("formatFanQueryResponse about", () => {

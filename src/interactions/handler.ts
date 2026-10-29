@@ -386,7 +386,12 @@ async function runDeferredCommand(
     payload,
     fetchImpl: deps.fetchImpl,
   });
-  if (!edited) {
-    console.error("interaction_webhook_edit_failed", { interactionId: body.id, mode });
+  if (!edited.ok) {
+    console.error("interaction_webhook_edit_failed", {
+      interactionId: body.id,
+      mode,
+      httpStatus: edited.status,
+      phase: edited.phase,
+    });
   }
 }

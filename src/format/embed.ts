@@ -14,6 +14,9 @@ import type { PostToChannelCache } from "../interactions/post-cache.js";
 const EMBED_DESCRIPTION_MAX = 4096;
 const EMBED_TITLE_MAX = 256;
 const EMBED_COMBINED_MAX = 6000;
+/** Discord message component limits (API v10). */
+const DISCORD_MAX_ACTION_ROWS = 5;
+const DISCORD_MAX_COMPONENTS_PER_ROW = 5;
 const MAX_SEARCH_MOMENTS = 5;
 const MAX_ASK_CITATIONS = 3;
 const FOOTER_TEXT = "Ember · released episodes only";
@@ -165,18 +168,21 @@ function momentFieldValue(moment: MomentLike): string {
   return clipText(`${speaker} · ${ts}\n${snippet}`, EMBED_FIELD_MAX);
 }
 
-function watchButtonRow(label: string, url: string): DiscordActionRow {
-  return {
-    type: 1,
-    components: [
-      {
+function linkButtonRows(buttons: Array<{ label: string; url: string }>): DiscordActionRow[] {
+  const rows: DiscordActionRow[] = [];
+  for (let i = 0; i < buttons.length; i += DISCORD_MAX_COMPONENTS_PER_ROW) {
+    const chunk = buttons.slice(i, i + DISCORD_MAX_COMPONENTS_PER_ROW);
+    rows.push({
+      type: 1,
+      components: chunk.map((b) => ({
         type: 2,
         style: 5,
-        label: clipText(label, 80),
-        url,
-      },
-    ],
-  };
+        label: clipText(b.label, 80),
+        url: b.url,
+      })),
+    });
+  }
+  return rows;
 }
 
 function buildSearchPayload(body: unknown, opts: FormatEmbedOptions): WebhookMessagePayload {
@@ -200,17 +206,18 @@ function buildSearchPayload(body: unknown, opts: FormatEmbedOptions): WebhookMes
     footer: baseFooter(),
   };
 
-  const components: DiscordActionRow[] = [];
+  const linkButtons: Array<{ label: string; url: string }> = [];
   moments.forEach((moment, idx) => {
     const url = moment.watch_url;
     if (typeof url === "string" && isAllowedWatchUrl(url, opts.archiveWatchHost)) {
-      components.push(watchButtonRow(`Watch ${idx + 1}`, url));
+      linkButtons.push({ label: `Watch ${idx + 1}`, url });
     }
   });
+  const components = linkButtons.length > 0 ? linkButtonRows(linkButtons) : undefined;
 
   return trimToCaps({
     embeds: [embed],
-    components: components.length > 0 ? components : undefined,
+    components,
     allowed_mentions: { parse: [] },
   });
 }
@@ -238,17 +245,18 @@ function buildAskPayload(body: unknown, opts: FormatEmbedOptions): WebhookMessag
     footer: baseFooter(),
   };
 
-  const components: DiscordActionRow[] = [];
+  const linkButtons: Array<{ label: string; url: string }> = [];
   ask.citations.forEach((citation, idx) => {
     const url = citation.watch_url;
     if (typeof url === "string" && isAllowedWatchUrl(url, opts.archiveWatchHost)) {
-      components.push(watchButtonRow(`Watch ${idx + 1}`, url));
+      linkButtons.push({ label: `Watch ${idx + 1}`, url });
     }
   });
+  const components = linkButtons.length > 0 ? linkButtonRows(linkButtons) : undefined;
 
   return trimToCaps({
     embeds: [embed],
-    components: components.length > 0 ? components : undefined,
+    components,
     allowed_mentions: { parse: [] },
   });
 }
@@ -390,9 +398,14 @@ export function withPostToChannelButton(
   sourceInteractionId: string,
 ): WebhookMessagePayload {
   const base = publicChannelPayload(payload);
+  const maxRowsBeforePost = DISCORD_MAX_ACTION_ROWS - 1;
+  const trimmed =
+    (base.components?.length ?? 0) > maxRowsBeforePost
+      ? base.components!.slice(0, maxRowsBeforePost)
+      : base.components;
   return {
     ...base,
-    components: [...(base.components ?? []), postButtonRow(sourceInteractionId)],
+    components: [...(trimmed ?? []), postButtonRow(sourceInteractionId)],
     allowed_mentions: { parse: [] },
   };
 }

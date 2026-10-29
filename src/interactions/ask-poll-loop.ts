@@ -91,17 +91,19 @@ export async function runAskPollLoop(input: RunAskPollLoopInput): Promise<void> 
   let stillWorkingSent = false;
 
   const edit = async (payload: WebhookMessagePayload): Promise<void> => {
-    const ok = await editOriginalInteractionMessage({
+    const edited = await editOriginalInteractionMessage({
       applicationId: input.applicationId,
       token: input.token,
       payload,
       fetchImpl: input.deps.fetchImpl,
     });
-    if (!ok) {
+    if (!edited.ok) {
       console.error("interaction_webhook_edit_failed", {
         interactionId: input.interactionId,
         mode: input.mode,
         phase: "ask_poll",
+        httpStatus: edited.status,
+        webhookPhase: edited.phase,
       });
     }
   };

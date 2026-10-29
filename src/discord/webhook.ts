@@ -62,11 +62,18 @@ function withAllowedMentions(payload: WebhookMessagePayload): WebhookMessagePayl
  * Edit the deferred ephemeral thinking message.
  * Retries PATCH twice, then POST fallback while the interaction token is valid (§11).
  */
-export async function editOriginalInteractionMessage(input: EditInteractionMessageInput): Promise<boolean> {
+export type InteractionWebhookEditResult =
+  | { ok: true }
+  | { ok: false; status: number; phase: "patch" | "post" };
+
+export async function editOriginalInteractionMessage(
+  input: EditInteractionMessageInput,
+): Promise<InteractionWebhookEditResult> {
   const fetchImpl = input.fetchImpl ?? globalThis.fetch;
   const body = JSON.stringify(withAllowedMentions(input.payload));
   const patchUrl = `${DISCORD_API}/webhooks/${input.applicationId}/${input.token}/messages/@original`;
 
+  let lastPatchStatus = 0;
   for (let attempt = 0; attempt < 3; attempt++) {
     const res = await fetchImpl(patchUrl, {
       method: "PATCH",
@@ -75,10 +82,11 @@ export async function editOriginalInteractionMessage(input: EditInteractionMessa
     });
     recordWebhookHttpStatus(res.status);
     if (res.ok) {
-      return true;
+      return { ok: true };
     }
+    lastPatchStatus = res.status;
     if (res.status === 401) {
-      return false;
+      return { ok: false, status: res.status, phase: "patch" };
     }
   }
 
@@ -89,7 +97,10 @@ export async function editOriginalInteractionMessage(input: EditInteractionMessa
     body,
   });
   recordWebhookHttpStatus(postRes.status);
-  return postRes.ok;
+  if (postRes.ok) {
+    return { ok: true };
+  }
+  return { ok: false, status: postRes.status || lastPatchStatus, phase: "post" };
 }
 
 export type InteractionFollowUpResult = { ok: true } | { ok: false; status: number };
