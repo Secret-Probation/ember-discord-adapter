@@ -45,6 +45,13 @@ type AboutLike = {
   show_name?: string | null;
   ask_available?: boolean | null;
   archive_url?: string | null;
+  privacy_url?: string | null;
+  terms_url?: string | null;
+  deletion_url?: string | null;
+  report_url?: string | null;
+  operator_name?: string | null;
+  age_restricted?: boolean | null;
+  data_retention_hours?: number | null;
 };
 
 function embedTextLength(embed: DiscordEmbed): number {
@@ -261,7 +268,29 @@ function buildAboutPayload(body: unknown): WebhookMessagePayload {
       ? `\nPublic archive: ${sanitizeFanText(archiveUrl)}`
       : "";
 
-  const description = clipText(`${askLine}${archiveLine}`, EMBED_DESCRIPTION_MAX);
+  const operator = about?.operator_name?.trim() ? sanitizeFanText(about.operator_name.trim()) : "Secret Probation";
+  const retentionHours =
+    typeof about?.data_retention_hours === "number" && about.data_retention_hours > 0
+      ? about.data_retention_hours
+      : 72;
+  const legalLines: string[] = [];
+  const pushLink = (label: string, url: string | null | undefined) => {
+    const trimmed = url?.trim();
+    if (trimmed && trimmed.startsWith("https://")) {
+      legalLines.push(`${label}: ${sanitizeFanText(trimmed)}`);
+    }
+  };
+  pushLink("Privacy", about?.privacy_url);
+  pushLink("Terms", about?.terms_url);
+  pushLink("Delete my data", about?.deletion_url);
+  pushLink("Report", about?.report_url);
+  const ageLine = about?.age_restricted === false ? "" : "\n18+ — podcast archive search.";
+  const legalBlock =
+    legalLines.length > 0
+      ? `\n\n${operator} · question text deleted after ${retentionHours}h.\n${legalLines.join("\n")}${ageLine}`
+      : `\n\n${operator} · question text deleted after ${retentionHours}h.${ageLine}`;
+
+  const description = clipText(`${askLine}${archiveLine}${legalBlock}`, EMBED_DESCRIPTION_MAX);
   const embed: DiscordEmbed = {
     title: clipText(showName, EMBED_TITLE_MAX),
     description,

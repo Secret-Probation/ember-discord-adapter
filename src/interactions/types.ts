@@ -21,8 +21,35 @@ export type InteractionPayload = {
   authorizing_integration_owners?: Record<string, unknown>;
 };
 
+/** Application integration type 0 = guild install (Discord API v10). */
+export const INTEGRATION_TYPE_GUILD = "0";
+
 export function guildIdFromInteraction(body: InteractionPayload): string | null {
   return body.guild_id?.trim() || null;
+}
+
+/**
+ * SPEC §5 — reject user-install-only contexts when authorizing_integration_owners is present.
+ * When Discord omits the field (tests), guild_id alone is accepted.
+ */
+export function hasGuildInstallContext(body: InteractionPayload): boolean {
+  const guildId = body.guild_id?.trim();
+  if (!guildId) {
+    return false;
+  }
+  const owners = body.authorizing_integration_owners;
+  if (!owners || typeof owners !== "object") {
+    return true;
+  }
+  if (!Object.prototype.hasOwnProperty.call(owners, INTEGRATION_TYPE_GUILD)) {
+    return false;
+  }
+  const guildOwner = owners[INTEGRATION_TYPE_GUILD];
+  if (guildOwner == null) {
+    return false;
+  }
+  const ownerId = typeof guildOwner === "string" ? guildOwner.trim() : String(guildOwner).trim();
+  return ownerId.length > 0 && ownerId !== "0";
 }
 
 export function userIdFromInteraction(body: InteractionPayload): string | null {

@@ -9,6 +9,8 @@ export type WebhookMessagePayload = {
   embeds?: DiscordEmbed[];
   components?: DiscordActionRow[];
   allowed_mentions: AllowedMentions;
+  /** Message flags (e.g. 64 = ephemeral) for interaction webhook edits. */
+  flags?: number;
 };
 
 export type DiscordEmbed = {
@@ -88,4 +90,24 @@ export async function editOriginalInteractionMessage(input: EditInteractionMessa
   });
   recordWebhookHttpStatus(postRes.status);
   return postRes.ok;
+}
+
+export type InteractionFollowUpResult = { ok: true } | { ok: false; status: number };
+
+/** Channel-visible follow-up after component defer (type 6) — SPEC §11 post-to-channel. */
+export async function createInteractionFollowUp(
+  input: EditInteractionMessageInput,
+): Promise<InteractionFollowUpResult> {
+  const fetchImpl = input.fetchImpl ?? globalThis.fetch;
+  const postUrl = `${DISCORD_API}/webhooks/${input.applicationId}/${input.token}`;
+  const res = await fetchImpl(postUrl, {
+    method: "POST",
+    headers: webhookHeaders(),
+    body: JSON.stringify(withAllowedMentions(input.payload)),
+  });
+  recordWebhookHttpStatus(res.status);
+  if (res.ok) {
+    return { ok: true };
+  }
+  return { ok: false, status: res.status };
 }

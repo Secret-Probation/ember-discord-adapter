@@ -1,7 +1,11 @@
 import type { AdapterConfig } from "../config.js";
 import type { ControlPlaneClient, FanQueryMode } from "../cp/client.js";
 import { FAN_QUERY_GENERIC_ERROR, fanQueryErrorMessage } from "../cp/error-map.js";
-import { editOriginalInteractionMessage, type WebhookMessagePayload } from "../discord/webhook.js";
+import {
+  createInteractionFollowUp,
+  editOriginalInteractionMessage,
+  type WebhookMessagePayload,
+} from "../discord/webhook.js";
 import { deferredEphemeralBody, pongResponseBody } from "../discord/verify.js";
 import {
   finalizeFanQueryEphemeralPayload,
@@ -25,6 +29,7 @@ import {
   INTERACTION_MESSAGE_COMPONENT,
   INTERACTION_PING,
   guildIdFromInteraction,
+  hasGuildInstallContext,
   memberRoleIds,
   subcommandAndQuery,
   userIdFromInteraction,
@@ -33,6 +38,7 @@ import {
 
 export const BUSY_MESSAGE = "Ember is busy — try again in a minute.";
 export const POST_CACHE_MISS_MESSAGE = "Run the command again.";
+export const POST_CHANNEL_FORBIDDEN_MESSAGE = "Ember can't post in this channel.";
 
 export type InteractionHandlerDeps = {
   config: AdapterConfig;
@@ -85,8 +91,7 @@ export function createInteractionHandler(deps: InteractionHandlerDeps) {
 
     const handlerStarted = Date.now();
 
-    const guildId = guildIdFromInteraction(input.parsed);
-    if (!guildId) {
+    if (!hasGuildInstallContext(input.parsed)) {
       return {
         status: 200,
         headers: jsonHeaders,
@@ -96,6 +101,11 @@ export function createInteractionHandler(deps: InteractionHandlerDeps) {
         }),
         callCp: false,
       };
+    }
+
+    const guildId = guildIdFromInteraction(input.parsed);
+    if (!guildId) {
+      return ephemeralMessage("Ember only works in servers.");
     }
 
     const processCap = deps.processLimiter.consume();
@@ -143,11 +153,11 @@ function ephemeralMessage(content: string): HandleInteractionResult {
   };
 }
 
-function channelMessage(payload: Record<string, unknown>): HandleInteractionResult {
+function deferredComponentAck(): HandleInteractionResult {
   return {
     status: 200,
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ type: 4, data: payload }),
+    body: JSON.stringify({ type: 6, data: {} }),
     callCp: false,
   };
 }
@@ -165,6 +175,10 @@ function handleMessageComponent(
   deps: InteractionHandlerDeps,
   body: InteractionPayload,
 ): HandleInteractionResult {
+  if (!hasGuildInstallContext(body)) {
+    return ephemeralMessage("Ember only works in servers.");
+  }
+
   const guildId = guildIdFromInteraction(body);
   if (!guildId) {
     return ephemeralMessage("Ember only works in servers.");
@@ -200,12 +214,60 @@ function handleMessageComponent(
     return ignoredComponentUpdate();
   }
 
-  recordPostToChannel();
-  void recordShareRollup(deps, cached);
+  void runPostToChannelFromComponent(deps, body, cached);
+  return deferredComponentAck();
+}
 
-  return channelMessage({
-    ...cached.publicPayload,
-    allowed_mentions: { parse: [] },
+async function runPostToChannelFromComponent(
+  deps: InteractionHandlerDeps,
+  body: InteractionPayload,
+  cached: {
+    guildId: string;
+    invokerUserId: string;
+    publicPayload: WebhookMessagePayload;
+    sourceInteractionId: string;
+    share: { jobId: string; playbackStartSeconds: number; speaker?: string | null } | null;
+  },
+): Promise<void> {
+  const applicationId = deps.config.discordApplicationId.trim();
+  const token = body.token?.trim();
+  if (!token || !applicationId) {
+    return;
+  }
+
+  const followUp = await createInteractionFollowUp({
+    applicationId,
+    token,
+    payload: {
+      ...cached.publicPayload,
+      allowed_mentions: { parse: [] },
+    },
+    fetchImpl: deps.fetchImpl,
+  });
+
+  if (followUp.ok) {
+    recordPostToChannel();
+    await recordShareRollup(deps, cached);
+    return;
+  }
+
+  if (followUp.status === 403) {
+    await editOriginalInteractionMessage({
+      applicationId,
+      token,
+      payload: {
+        content: clipText(POST_CHANNEL_FORBIDDEN_MESSAGE, MESSAGE_CONTENT_MAX),
+        allowed_mentions: { parse: [] },
+        flags: 64,
+      },
+      fetchImpl: deps.fetchImpl,
+    });
+    return;
+  }
+
+  console.error("post_to_channel_followup_failed", {
+    interactionId: body.id,
+    status: followUp.status,
   });
 }
 
