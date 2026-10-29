@@ -3,7 +3,7 @@
 **Normative behavior:** [SPEC.md](./SPEC.md)  
 **Per-PR agent briefs:** [docs/pr/README.md](./pr/README.md) (one file per PR — **give that file to each agent**)
 
-**Status (2026-10-28):** **CP-1..7**, **CP-5/6**, **AD-1/2/3/5** merged. **G2a** proof: `discord-g2a.db.test.ts` (compliance-db CI) + adapter `g2a-fan-query-flow.test.ts` — see [G2A_PROOF.md](./G2A_PROOF.md). **G3** in flight: **AD-4** + **CP-8**.
+**Status (2026-10-28):** All planned PRs **merged** (CP-1..9 incl. 8b, AD-1..7, G2a, V-1). **Code/CI through G4** deploy artifacts. **Next:** live Discord — **G3** Connect → **G2b** guild QA → **G4** smoke with real guild; Phase 5 ops.
 
 ---
 
