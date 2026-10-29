@@ -9,6 +9,11 @@ import { createInteractionHandler } from "../interactions/handler.js";
 import { InteractionIdempotency } from "../interactions/idempotency.js";
 import type { InteractionPayload } from "../interactions/types.js";
 import { handleOAuthCallback, handleOAuthStart } from "./oauth-routes.js";
+import {
+  interactionUnauthorizedTotal,
+  renderPrometheusMetrics,
+  signatureVerifyTotal,
+} from "../observability/metrics.js";
 import { FixedWindowBucket, GuildRateLimiter, ProcessRpsLimiter } from "../rate-limit/buckets.js";
 
 export type HttpServerSurface = "public" | "internal";
@@ -55,6 +60,12 @@ export function createHttpServer(deps: HttpServerDeps): http.Server {
     if (req.method === "GET" && url === "/health") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok" }));
+      return;
+    }
+
+    if (surface === "internal" && req.method === "GET" && url === "/metrics") {
+      res.writeHead(200, { "Content-Type": "text/plain; version=0.0.4; charset=utf-8" });
+      res.end(renderPrometheusMetrics());
       return;
     }
 
@@ -162,10 +173,12 @@ async function handleInteractionsPost(
   if (!signature || !timestamp) {
     const cap = unsignedIpBucket.consume(ip);
     if (!cap.allowed) {
+      interactionUnauthorizedTotal.inc({ reason: "unsigned_ip_rate_limit" });
       res.writeHead(429, { "Content-Type": "application/json", "Retry-After": String(cap.retryAfterSec) });
       res.end(JSON.stringify({ error: "rate_limited" }));
       return;
     }
+    interactionUnauthorizedTotal.inc({ reason: "missing_signature" });
     res.writeHead(401, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "unauthorized" }));
     return;
@@ -188,20 +201,27 @@ async function handleInteractionsPost(
 
   if (!verified.ok) {
     if (verified.reason === "timestamp_skew") {
+      signatureVerifyTotal.inc({ result: "timestamp_skew" });
+      interactionUnauthorizedTotal.inc({ reason: "timestamp_skew" });
       res.writeHead(401, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "unauthorized" }));
       return;
     }
+    signatureVerifyTotal.inc({ result: verified.reason });
     const cap = unsignedIpBucket.consume(ip);
     if (!cap.allowed) {
+      interactionUnauthorizedTotal.inc({ reason: "bad_signature_ip_rate_limit" });
       res.writeHead(429, { "Content-Type": "application/json", "Retry-After": String(cap.retryAfterSec) });
       res.end(JSON.stringify({ error: "rate_limited" }));
       return;
     }
+    interactionUnauthorizedTotal.inc({ reason: "bad_signature" });
     res.writeHead(401, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "unauthorized" }));
     return;
   }
+
+  signatureVerifyTotal.inc({ result: "ok" });
 
   let parsed: InteractionPayload;
   try {
