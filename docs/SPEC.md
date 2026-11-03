@@ -5,6 +5,8 @@
 **Parents (Voxen):** [SPEC-EMBER-PUBLIC-ARCHIVE-LINK.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/specs/SPEC-EMBER-PUBLIC-ARCHIVE-LINK.md) · [SPEC-EMBER-ASK-OUTPUT-CONTRACT.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/specs/SPEC-EMBER-ASK-OUTPUT-CONTRACT.md) · [V1_ARCHITECTURE_LOCKED.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/V1_ARCHITECTURE_LOCKED.md)  
 **Discord policy:** [Developer Policy](https://support-dev.discord.com/hc/en-us/articles/8563934450327-Discord-Developer-Policy) (effective 2024-07-08) · [Developer Terms](https://support-dev.discord.com/hc/en-us/articles/8562894815383-Discord-Developer-Terms-of-Service). Re-read both before the first install.
 
+**Agent harness:** `.cursor/rules/discord-policy-harness.mdc` and `.cursorrules` enforce §15/§17 for all future adapter work (no ads, no marketing in Discord replies).
+
 This document is the accepted contract. It is not a scaffold. Accept does not by itself create a repository, a Discord application, a container, or a control-plane change — see §20 and §22.
 
 ---
@@ -35,13 +37,13 @@ A podcaster needs Ember inside their own Discord server. Members search and ask 
 
 - Gateway, message content, presence, member-list intent, voice, auto-reply, scheduled posts, DMs, user-install, Discord Activities.
 - A Discord-only paid SKU or any price, upgrade, or checkout inside Discord.
-- Fan accounts, fan Stripe, a multi-show picker, customer-hosted bots.
+- Fan accounts, fan Stripe, a multi-show picker, customer-hosted bots. **Roadmap (org hub):** Voxen [SPEC-EMBER-DISCORD-MULTI-SHOW-GUILD.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/specs/SPEC-EMBER-DISCORD-MULTI-SHOW-GUILD.md) track **D-MS1**.
 - Plan-tier gates (`fan_module_not_in_plan`, Studio search-only, Trial blocked). Those ship only when they ship for every fan surface, in the same change. See §8.
 - A daily kick-prune (`GET /users/@me/guilds`). Stale bindings are accepted in v1.
 - A second adapter replica. In-memory rate buckets and the post-to-channel cache are accepted for the design-partner launch.
 - Any change to Voxen workers or to Ember `/v1/search` and `/v1/ask`.
 - An edit to `secret-probation/docs/gtm/FAN_ENGAGEMENT_AND_EMBER_MODULES.md`. Phase **B″** (between public archive and per-link modules) is context only.
-- YouTube click-through as a first-party metric. v1 does not wrap `watch_url`.
+- YouTube click-through as a first-party metric. v1 does not wrap `watch_url`. **Roadmap:** Voxen [SPEC-EMBER-FAN-LINK-CLICK-TRACKING.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/specs/SPEC-EMBER-FAN-LINK-CLICK-TRACKING.md) track **D-LC1**.
 
 ---
 

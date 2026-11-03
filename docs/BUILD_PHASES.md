@@ -157,6 +157,7 @@ AD-2 → AD-7
 
 ## Global PR rules
 
+0. **Policy harness:** `.cursor/rules/discord-policy-harness.mdc` — no ads, no marketing in Discord fan replies (§15/§17). Review formatter, error copy, and commands on every PR.
 1. **Spec:** behavior change → update `docs/SPEC.md` in **ember-discord-adapter** (same PR or prior spec PR).
 2. **Credentials:** `EMBER_DISCORD_SERVICE_BEARER` (adapter→CP); `EMBER_DISCORD_ADAPTER_INTERNAL_TOKEN` (CP→adapter). Never commit values.
 3. **Internal API:** not on public vhost; document in CP PR if nginx/docker touched.
@@ -164,6 +165,17 @@ AD-2 → AD-7
 5. **Completion:** mark PR merged in [pr/README.md](./pr/README.md).
 6. **CP-only PRs:** if routes match SPEC §7 already, PR body must say *SPEC §7 unchanged — implementation only*; if adding/changing routes, open an **adapter-repo** docs PR updating `SPEC.md` in the same merge window (or include spec commit in orchestrator batch).
 7. **§19 tests:** use the **§19 test ownership** table in [CP-4.md](./pr/CP-4.md) and [CP-6.md](./pr/CP-6.md); do not implement cited rollups in CP-4.
+
+---
+
+## Phase 6 — Roadmap (not scheduled)
+
+| ID | Goal | Spec |
+|----|------|------|
+| **D-MS1** | One Discord guild, **multiple shows** in the same SP org (`show` option + hub binding) | Voxen [SPEC-EMBER-DISCORD-MULTI-SHOW-GUILD.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/specs/SPEC-EMBER-DISCORD-MULTI-SHOW-GUILD.md) |
+| **D-LC1** | **Fan link click** tracking (signed redirect; Watch/Transcript buttons) | Voxen [SPEC-EMBER-FAN-LINK-CLICK-TRACKING.md](https://github.com/Secret-Probation/Voxen/blob/master/docs/specs/SPEC-EMBER-FAN-LINK-CLICK-TRACKING.md) |
+
+v1 remains **one guild ↔ one show** (SPEC §6). Do not implement D-MS1 without updating this repo’s `SPEC.md` command table in the same merge window.
 
 ---
 
