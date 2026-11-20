@@ -31,6 +31,10 @@ export function clipText(text: string, maxLen: number): string {
 
 const ALLOWED_WATCH_HOSTS = new Set(["youtube.com", "www.youtube.com", "youtu.be"]);
 
+function isFanPlayRedirectPath(pathname: string): boolean {
+  return pathname === "/api/fan/out" || pathname.startsWith("/api/fan/out/");
+}
+
 export function isAllowedWatchUrl(url: string, extraArchiveHost?: string | null): boolean {
   try {
     const parsed = new URL(url);
@@ -44,7 +48,7 @@ export function isAllowedWatchUrl(url: string, extraArchiveHost?: string | null)
       return true;
     }
     if (extraArchiveHost && parsed.hostname === extraArchiveHost) {
-      return true;
+      return isFanPlayRedirectPath(parsed.pathname);
     }
     return false;
   } catch {

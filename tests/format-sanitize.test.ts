@@ -33,4 +33,11 @@ describe("isAllowedWatchUrl", () => {
     expect(isAllowedWatchUrl("http://youtube.com/x")).toBe(false);
     expect(isAllowedWatchUrl("javascript:alert(1)")).toBe(false);
   });
+
+  it("allows fan play redirect only under /api/fan/out on the archive host", () => {
+    const host = "dev.example.com";
+    expect(isAllowedWatchUrl("https://dev.example.com/api/fan/out/signed", host)).toBe(true);
+    expect(isAllowedWatchUrl("https://dev.example.com/api/fan/out", host)).toBe(true);
+    expect(isAllowedWatchUrl("https://dev.example.com/shows/foo", host)).toBe(false);
+  });
 });
